@@ -26,6 +26,9 @@ Godot 4 project: first-person psychological horror game about addiction, PS1 sty
 - `scripts/dialogues.gd`: staff conversations + group therapy (choice trees, once per day via `Recovery.can_talk`); NPCs with `dialogue_id` start them; UI is `Game.start_dialogue()`
 - `scripts/activities/`: basketball, football, swimming minigames extending `activity_base.gd` (`setup()`, `tick()`, `finish(did_well)`); started from spots in `hospital.gd` `_activity_spots()`, once per day
 - Time-passing hints (step 9): `Config.YEAR_HE_THINKS` / `YEAR_NOW`; calendars, dated letters, chart and `HINTS` lines in `hospital.gd`; the mirror head ages with `Recovery.day()` in `player_body.gd`; mirror remarks in `props/mirror.gd`
+- `scripts/story_items.gd`: the 5 items + letters (data). `scripts/inventory.gd`: Belongings screen (I / Tab), owned by `Game`
+- Spooky encounters: girl apparitions = `props/fog_figure.gd` with `child = true` (spots in `hospital.gd` `GIRL_SPOTS`); phone/TV in `hospital.gd` `_update_encounters()`; the football car in `activities/football.gd`
+- Interactive objects: `hospital.gd` `_interactions()` / `_toggle_spot()` (prompt can change live via `Pickup.prompt_source`)
 - `scripts/episode.gd` (withdrawal episode, `flashback_point` signal for step 6) and `scripts/hallucination.gd`
   (monster). Only one runs at a time via `Withdrawal.state`; neither while `Withdrawal.is_influenced()`.
   Signals for step 5 live on Withdrawal (`episode_survived`, `pill_taken`, ...) and `hallucination.caught_player`.

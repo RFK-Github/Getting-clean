@@ -114,6 +114,10 @@ func figure(top: Color, legs: Color, skin: Color, hair: Color, sitting := false,
 	box(Vector3(0, 0.12, 0), Vector3(0.22, 0.26, 0.24), m_skin, false, head)
 	box(Vector3(0, 0.27, 0.02), Vector3(0.24, 0.07, 0.26), m_hair, false, head)
 	box(Vector3(0, 0.12, 0.1), Vector3(0.24, 0.24, 0.06), m_hair, false, head)   # hair at the back
+	var m_face := mat("plain", Color(0.06, 0.05, 0.05), 1.0, false)
+	for side in [-1.0, 1.0]:
+		box(Vector3(side * 0.05, 0.14, -0.121), Vector3(0.035, 0.025, 0.01), m_face, false, head)   # eyes
+	box(Vector3(0, 0.06, -0.121), Vector3(0.07, 0.012, 0.01), mat("plain", skin * Color(0.75, 0.5, 0.5), 1.0, false), false, head)   # mouth
 	for side in [-1.0, 1.0]:
 		var arm := Node3D.new()
 		arm.name = "arm_l" if side < 0.0 else "arm_r"

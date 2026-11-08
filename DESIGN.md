@@ -82,3 +82,14 @@ Each gives Recovery and lowers withdrawal. Showing up always gives a little; doi
 8. Activities: basketball, then football, then swimming.
 9. Time-passing hints (calendars, mirror, letters, staff lines).
 10. Endings (final cutscenes A and B), main menu, export to macOS and Web.
+
+## CHANGES AFTER PLAYTESTING
+- Withdrawal episode: after kneeling (and the flashback, if one is left) he blacks out and wakes up in his room the next day - one day passes, like being forced back to bed.
+- Withdrawal rises slightly faster. Basketball, football and talking to the nurse remove some withdrawal.
+- Taking pills removes ALL current withdrawal but raises the rate it rises at afterwards. Pill bottles return to their places when a new day starts.
+- Items have a soft glint so they can be found; small items are bigger. Inventory screen ("Belongings", I / Tab) shows found items and read letters.
+- More things to use: TV, radio, light switch, tap, wardrobe, filing cabinet, books, vending machine, piano, candles, the reception phone.
+- Background music in the hospital (Music volume in settings).
+- More of the hospital: stairwell, cafeteria, visiting room (locked), and a second floor with a chapel, records room (his file), library and art therapy room.
+- More spooky encounters: a small girl in a yellow dress (the daughter) appears and vanishes - in the hospital and in the fog in Philadelphia; the phone that rings only for him ("Daddy?"); the TV that turns itself on; on the lawn, a car comes out of the back of the goal at him and vanishes before it hits.
+- NPCs have faces (eyes that blink, mouths that move when they talk), varied hair, glasses and beards, and they breathe, glance around and turn their heads to watch you.

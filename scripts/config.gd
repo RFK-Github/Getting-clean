@@ -97,6 +97,7 @@ const LAMP_FLICKER_CHANCE := 0.06            # per frame, for flickering lamps
 const NPC_MODEL_DIR := "res://assets/characters/"   # <role>.glb replaces the boxes (doctor, nurse, patient, therapist)
 const NPC_WALK_SPEED := 1.1
 const NPC_WAIT_TIME := 3.0                   # seconds they pause at each waypoint
+const NPC_LOOK_DISTANCE := 4.0              # NPCs turn their heads to watch you within this distance
 const NAV_AGENT_RADIUS := 0.25               # navigation mesh clearance (multiple of 0.25; must fit 1.2 m doors)
 const NAV_AGENT_HEIGHT := 1.5               # navigation clearance under door lintels (2.2 m)
 
