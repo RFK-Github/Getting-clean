@@ -73,15 +73,28 @@ const ITEMS := [
 		"message": "Your wedding ring. You don't remember taking it off. You put it back on. It still fits."},
 ]
 
+## Staff and patients who recognise him (from Config.HINT_LINES_FROM_DAY).
+const HINTS := {
+	"Nurse Kim": ["Welcome back. ...You don't remember me, do you? That's alright. You never do."],
+	"Nurse Ortiz": ["You're looking better than last time. Last time was rough."],
+	"Dr. Reyes": ["I've stood at this door with you before. More than once."],
+	"Nurse Dale": ["Your old lap times are still pinned up in the office, you know."],
+	"Leon": ["Hey, I know you. You were here when I first came in. That was years ago, man."],
+	"Sam": ["You were a decent striker, last time you were here. You don't remember?"],
+	"Ruth": ["Room twelve again? They always give you twelve."],
+	"Dee": ["You were here before. Before any of us."],
+	"Walt": ["Didn't you get out? I thought you got out."],
+}
+
 ## The wife's letters. They get shorter and colder.
 const LETTERS := [
-	{"id": "letter_1", "pos": Vector3(-17.95, 0.6, -20.55),
+	{"id": "letter_1", "month": "March", "years_after": 0, "pos": Vector3(-17.95, 0.6, -20.55),
 		"text": "My love,\n\nThe house is so quiet. Some nights I still set the table for three, and then I just sit there.\n\nI'm not angry. I just need you to come back to me. Get well. I'll be here.\n\nAll my love,\nC."},
-	{"id": "letter_2", "pos": Vector3(5.6, 1.15, -7.4),
+	{"id": "letter_2", "month": "November", "years_after": 1, "pos": Vector3(5.6, 1.15, -7.4),
 		"text": "Hi,\n\nThe doctor says you have good days and bad days. I came once, but they said you didn't know who I was.\n\nPlease get better.\n\nC."},
-	{"id": "letter_3", "pos": Vector3(9.6, 1.31, -20.0),
+	{"id": "letter_3", "month": "June", "years_after": 3, "pos": Vector3(9.6, 1.31, -20.0),
 		"text": "I don't know if you read these. Write back if you can.\n\nC."},
-	{"id": "letter_4", "pos": Vector3(6.3, 0.775, -41.2),
+	{"id": "letter_4", "month": "January", "years_after": -1, "pos": Vector3(6.3, 0.775, -41.2),
 		"text": "I need to tell you something when I visit. Please be clean.\n\nC."},
 ]
 
@@ -90,7 +103,7 @@ func get_settings() -> Dictionary:
 	var arrived := Game.previous_level == "philadelphia"
 	var start := "You wake up in your room. The lights hum. " + Recovery.days_text()
 	if arrived:
-		start = "The nurse at reception hands you a wristband. \"Room 12. West hall. Try to get some rest.\" " + Recovery.days_text()
+		start = "The nurse at reception looks up. \"Welcome back.\" She doesn't ask your name. \"Room 12. You know the way.\" " + Recovery.days_text()
 	elif Game.wake_message != "":
 		start = Game.wake_message
 	return {
@@ -132,6 +145,7 @@ func build() -> void:
 	_hidden_pills()
 	_items_and_letters()
 	_activity_spots()
+	_calendars()
 
 	var hum := AudioStreamPlayer.new()
 	hum.stream = Audio.hum()
@@ -182,7 +196,10 @@ func _items_and_letters() -> void:
 		p.item_id = l["id"]
 		p.prompt = "A letter"
 		p.title = "A LETTER FROM YOUR WIFE"
-		p.message = l["text"]
+		var year: int = Config.YEAR_NOW if l["years_after"] < 0 else Config.YEAR_HE_THINKS + l["years_after"]
+		p.message = "%s %d
+
+%s" % [l["month"], year, l["text"]]
 		p.shape_size = Vector3(0.4, 0.25, 0.4)
 		p.position = l["pos"]
 		p.rotation.y = randf_range(-0.4, 0.4)
@@ -279,6 +296,46 @@ func _on_exit() -> void:
 		else "Not yet. You're getting closer."
 	Withdrawal.post_message("Dr. Reyes: \"%s\"     (E again: push past him)" % line)
 	_push_window = Config.FORCE_EXIT_WINDOW
+
+
+## Calendars around the center that don't agree with each other - or with him.
+func _calendars() -> void:
+	var thinks := Config.YEAR_HE_THINKS
+	var now := Config.YEAR_NOW
+	calendar(Vector3(-19.78, 1.5, -23.4), 90, "MARCH", thinks,
+		"Your calendar. March %d. You crossed off the days up to the eleventh, then stopped." % thinks, true)
+	calendar(Vector3(17.0, 1.75, -22.18), 180, "OCTOBER", now,
+		"The calendar at the nurses' station says October %d. That can't be right." % now)
+	calendar(Vector3(9.78, 1.6, -16.0), -90, "OCTOBER", now,
+		"Dr. Adler's calendar. Appointments in neat handwriting. October %d." % now)
+	calendar(Vector3(2.22, 1.6, -35.5), 90, "JULY", now - 2,
+		"A charity calendar from %d. Puppies. Somebody never took it down." % (now - 2))
+	calendar(Vector3(2.6, 1.6, -11.78), 0, "OCTOBER", now,
+		"The reception calendar. Today is circled in red. %d." % now)
+
+
+## A wall calendar. rot_y: which way it faces (0 = +Z, 180 = -Z, 90 = +X, -90 = -X).
+func calendar(pos: Vector3, rot_y: float, month: String, year: int, message: String, crossed := false) -> void:
+	var root := Node3D.new()
+	root.position = pos
+	root.rotation_degrees.y = rot_y
+	add_child(root)
+	box(Vector3(0, 0, 0), Vector3(0.5, 0.66, 0.02), m_sheet, false, root)
+	box(Vector3(0, 0.27, 0.005), Vector3(0.5, 0.12, 0.02), mat("plain", Color(0.7, 0.15, 0.12), 1.0, false), false, root)
+	sign_text("%s %d" % [month, year], Vector3(0, 0.27, 0.017), 0, 16, Color(0.95, 0.95, 0.9), root)
+	var days := ""
+	for d in range(1, 29):
+		days += ("X" if crossed and d <= 11 else str(d)).lpad(3)
+		if d % 7 == 0:
+			days += "\n"
+	sign_text(days, Vector3(0, -0.07, 0.012), 0, 9, Color(0.2, 0.2, 0.22), root)
+	var p := Pickup.new()
+	p.kind = "locked"
+	p.prompt = "Calendar"
+	p.message = message
+	p.shape_size = Vector3(0.6, 0.7, 0.6)
+	p.position = pos - Vector3(0, 0.35, 0)
+	add_child(p)
 
 
 ## Where the activities start: the free-throw line, the penalty spot, the pool edge.
@@ -479,7 +536,7 @@ func _west_hall() -> void:
 
 	box(Vector3(-10, 0.5, -31.5), Vector3(0.9, 1.0, 0.5), m_metal)     # med cart
 	iv_stand(Vector3(-30.5, 0, -31.4))
-	npc("patient", Vector3(-30.5, 0, -30.2), 0.0, ["They never turn these lights off.", "Rough night?"], "",
+	npc("patient", Vector3(-30.5, 0, -30.2), 0.0, ["They never turn these lights off.", "Rough night?"], "Walt",
 		[Vector3(-30.5, 0, -30.2), Vector3(-4.5, 0, -30.2)])
 
 
@@ -711,7 +768,8 @@ func _schedule_text() -> String:
 func _chart_text() -> String:
 	var lines: Array[String] = []
 	lines.append("Programme: residential withdrawal management")
-	lines.append("Admitted: the date has been crossed out and written again.")
+	lines.append("Admitted: March %d. Crossed out. Re-admitted %d. Crossed out. Re-admitted %d." % [
+		Config.YEAR_HE_THINKS, Config.YEAR_HE_THINKS + 2, Config.YEAR_NOW - 1])
 	lines.append("")
 	lines.append("Day %d." % Recovery.day())
 	lines.append("Recovery  %s   %s" % [Recovery.scale_text(), Recovery.assessment()])
@@ -835,6 +893,8 @@ func npc(role: String, pos: Vector3, yaw: float, lines: Array, display_name := "
 	n.facing = yaw
 	n.lines.assign(lines)
 	n.waypoints.assign(waypoints)
+	if HINTS.has(display_name):
+		n.hint_lines.assign(HINTS[display_name])
 	n.position = pos
 	add_child.call_deferred(n)  # after the level's colliders exist
 	return n

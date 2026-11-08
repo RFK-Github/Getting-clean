@@ -21,6 +21,7 @@ var display_name := ""            # shown before their line, defaults to the rol
 var pose := "stand"               # "stand", "sit" or "lie"
 var waypoints: Array[Vector3] = []   # world positions; empty = stays put
 var lines: Array[String] = ["..."]
+var hint_lines: Array[String] = []   # "welcome back" lines: mixed in from Config.HINT_LINES_FROM_DAY
 var facing := 0.0                 # yaw in radians when standing still
 var prompt := "Talk"
 var dialogue_id := ""            # "doctor", "nurse" or "group": a real conversation (scripts/dialogues.gd)
@@ -70,7 +71,10 @@ func interact() -> void:
 		_wait = maxf(_wait, 2.0)
 		await Dialogues.run(dialogue_id)
 		return
-	var line: String = lines[_line % lines.size()]
+	var pool := lines.duplicate()
+	if Recovery.day() >= Config.HINT_LINES_FROM_DAY:
+		pool.append_array(hint_lines)
+	var line: String = pool[_line % pool.size()]
 	_line += 1
 	Withdrawal.post_message("%s: \"%s\"" % [display_name, line])
 	_wait = maxf(_wait, 2.0)  # stop for a moment when spoken to

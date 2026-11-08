@@ -94,11 +94,21 @@ func _build_placeholder() -> void:
 	_box(self, Vector3(0, 1.2, 0), Vector3(0.42, 0.55, 0.22), jacket)
 	_box(self, Vector3(0, 0.88, 0), Vector3(0.38, 0.16, 0.22), pants)
 	# Head and neck: only on visual layer 2, so mirrors see it but the player's camera doesn't.
-	var hair := Psx.material(Tex.get_texture("plain"), Config.HAIR_COLOR, 1.0, false)
-	for part in [
+	# Each time he wakes up he looks older in the mirror: greyer hair, a growing beard, tired eyes.
+	var age := clampf(float(Recovery.day() - 1) / Config.AGE_FULL_AFTER_WAKES, 0.0, 1.0)
+	var hair_color := Config.HAIR_COLOR.lerp(Config.HAIR_COLOR_OLD, age)
+	var hair := Psx.material(Tex.get_texture("plain"), hair_color, 1.0, false)
+	var tired := Psx.material(Tex.get_texture("plain"), Config.SKIN_COLOR * 0.6, 1.0, false)
+	var head_parts := [
 			_box(self, Vector3(0, 1.52, -0.02), Vector3(0.1, 0.1, 0.1), skin),
 			_box(self, Vector3(0, 1.66, -0.04), Vector3(0.22, 0.26, 0.24), skin),
-			_box(self, Vector3(0, 1.8, -0.02), Vector3(0.24, 0.07, 0.26), hair)]:
+			_box(self, Vector3(0, 1.8, -0.02), Vector3(0.24, 0.07, 0.26), hair)]
+	if age > 0.0:
+		var beard := 0.03 + 0.09 * age
+		head_parts.append(_box(self, Vector3(0, 1.56 + (0.12 - beard) * 0.5, -0.155), Vector3(0.2, beard, 0.03), hair))
+		for x in [-0.05, 0.05]:
+			head_parts.append(_box(self, Vector3(x, 1.675, -0.161), Vector3(0.05, 0.015 + 0.01 * age, 0.01), tired))
+	for part in head_parts:
 		part.layers = 2
 	_leg_l = _leg(Vector3(-0.1, 0.82, 0), pants, shoes)
 	_leg_r = _leg(Vector3(0.1, 0.82, 0), pants, shoes)

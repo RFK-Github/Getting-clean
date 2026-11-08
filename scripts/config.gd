@@ -267,6 +267,13 @@ const CUTSCENE_SCREAM_DB := -2.0             # loud bus
 const CUTSCENE_RAIN_DB := -14.0
 const CUTSCENE_TRAIN_DB := -2.0              # loud bus
 
+# ---------- Time-passing hints ----------
+const YEAR_HE_THINKS := 2019                 # the year he believes it is (he thinks it's been weeks)
+const YEAR_NOW := 2024                       # the real year (calendars, the last letter)
+const HINT_LINES_FROM_DAY := 2               # staff/patients start recognising him from this day
+const AGE_FULL_AFTER_WAKES := 4              # mirror: fully grey and bearded after waking up this many times
+const HAIR_COLOR_OLD := Color(0.55, 0.53, 0.5)
+
 # ---------- Story / HUD ----------
 const ITEMS_TOTAL := 5
 const LETTERS_TOTAL := 4

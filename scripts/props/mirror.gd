@@ -7,6 +7,16 @@ var size := Vector2(0.64, 0.8)  # keep the same aspect as Config.MIRROR_RESOLUTI
 
 var _viewport: SubViewport
 var _cam: Camera3D
+var _noticed := false
+
+## What he sees in the mirror after waking up for the 1st, 2nd, 3rd... time.
+const LOOKS := [
+	"You. Tired, but you.",
+	"There's grey in your hair you don't remember.",
+	"When did you grow a beard?",
+	"The lines around your eyes are deeper than they were yesterday. Weren't they?",
+	"The man in the mirror looks years older than you. He has your eyes.",
+]
 
 const SHADER_CODE := """
 shader_type spatial;
@@ -60,3 +70,9 @@ func _process(_delta: float) -> void:
 	_cam.global_transform = Transform3D(global_basis.rotated(global_basis.y.normalized(), PI), to_global(reflected))
 	# Off-centre frustum that exactly covers the mirror quad.
 	_cam.set_frustum(size.y, Vector2(local.x, -local.y), near, 30.0)
+
+	# Standing right in front of it, looking at it: he notices how he looks (once per wake-up).
+	var facing := -eye.global_basis.z.dot(-global_basis.z) > 0.7
+	if not _noticed and near < 1.6 and absf(local.x) < 0.6 and facing:
+		_noticed = true
+		Withdrawal.post_message(LOOKS[clampi(Recovery.day() - 1, 0, LOOKS.size() - 1)])
