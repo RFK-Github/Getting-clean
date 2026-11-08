@@ -13,6 +13,8 @@ static func get_texture(kind: String) -> Texture2D:
 			img = _drawing()
 		"photo":
 			img = _photo()
+		"icon_teddy", "icon_bracelet", "icon_ring":
+			img = _icon(kind)
 		"puff":
 			img = _radial(16, 0.9)
 		"sun":
@@ -269,3 +271,35 @@ static func _line(img: Image, a: Vector2i, b: Vector2i, col: Color) -> void:
 		var p := Vector2(a).lerp(Vector2(b), t).round()
 		if p.x >= 0 and p.y >= 0 and p.x < img.get_width() and p.y < img.get_height():
 			img.set_pixel(int(p.x), int(p.y), col)
+
+
+## Small inventory icons (24x24, transparent background) for things without a picture.
+static func _icon(kind: String) -> Image:
+	var img := Image.create_empty(24, 24, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	match kind:
+		"icon_teddy":
+			var fur := Color(0.62, 0.42, 0.25)
+			for p in [[12, 15, 7], [12, 7, 5], [7, 3, 2], [17, 3, 2], [5, 14, 2], [19, 14, 2], [9, 21, 2], [15, 21, 2]]:
+				_disc(img, p[0], p[1], p[2], fur)
+			img.set_pixel(10, 7, Color(0.05, 0.05, 0.05))   # one button eye
+			_disc(img, 12, 9, 1, Color(0.3, 0.2, 0.12))
+		"icon_bracelet":
+			var beads := [Color(0.9, 0.9, 0.2), Color(0.3, 0.6, 0.9), Color(0.9, 0.3, 0.3), Color(0.9, 0.5, 0.7)]
+			for i in 12:
+				var a := TAU * i / 12.0
+				_disc(img, int(12 + cos(a) * 8), int(12 + sin(a) * 8), 1, beads[i % 4])
+		"icon_ring":
+			for i in 40:
+				var a := TAU * i / 40.0
+				img.set_pixel(int(12 + cos(a) * 6), int(13 + sin(a) * 5), Color(0.9, 0.75, 0.3))
+				img.set_pixel(int(12 + cos(a) * 5), int(13 + sin(a) * 4), Color(0.75, 0.6, 0.2))
+			img.set_pixel(12, 7, Color(1, 1, 0.9))
+	return img
+
+
+static func _disc(img: Image, cx: int, cy: int, r: int, col: Color) -> void:
+	for y in range(-r, r + 1):
+		for x in range(-r, r + 1):
+			if x * x + y * y <= r * r + r and cx + x >= 0 and cy + y >= 0 and cx + x < img.get_width() and cy + y < img.get_height():
+				img.set_pixel(cx + x, cy + y, col)

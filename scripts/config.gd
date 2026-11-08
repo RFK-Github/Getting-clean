@@ -233,6 +233,8 @@ const ITEM_WITHDRAWAL_RELIEF := 25.0         # finding an item lowers withdrawal
 const LETTER_WITHDRAWAL_RELIEF := 10.0
 const ITEM_FLICKER := 0.6                    # under the influence: how often real items vanish (0-1)
 const FAKE_COPIES_PER_ITEM := 1              # under the influence: decoys that turn to nothing
+const ITEM_SPARKLE_COLOR := Color(1.0, 0.95, 0.75, 0.55)   # the glint above items and letters
+const ITEM_SPARKLE_SPEED := 2.5
 
 # ---------- Activities (once per in-game day each) ----------
 const ACTIVITY_RELIEF := 10.0                # withdrawal drops this much just for showing up

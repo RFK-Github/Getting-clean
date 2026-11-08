@@ -21,6 +21,7 @@ var action: Callable        # for kind "action"
 var shape_size := Vector3(0.4, 0.4, 0.4)
 
 var _flicker_t := 0.0
+var _glint_t := 0.0
 
 
 func _ready() -> void:
@@ -39,6 +40,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if kind != "item" and kind != "letter" and kind != "fake":
 		return
+	_glint_t += delta * Config.ITEM_SPARKLE_SPEED
+	var glint := get_node_or_null("Sparkle") as Node3D
+	if glint:
+		glint.scale = Vector3.ONE * (0.65 + 0.35 * sin(_glint_t + position.x))
 	var numb := Withdrawal.influence_strength()
 	_flicker_t -= delta
 	if _flicker_t <= 0.0:

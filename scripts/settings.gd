@@ -95,6 +95,7 @@ func _setup_input() -> void:
 	_bind("flashlight", [KEY_F])
 	_bind("interact", [KEY_E])
 	_bind("pause", [KEY_ESCAPE])
+	_bind("inventory", [KEY_I, KEY_TAB])
 
 
 func _bind(action: String, keys: Array) -> void:

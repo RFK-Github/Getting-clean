@@ -9,6 +9,9 @@ var wake_message := ""   # shown when the hospital loads after a day passes
 var in_cutscene := false
 
 const CutscenePlayer := preload("res://scripts/cutscenes/cutscene_player.gd")
+const Inventory := preload("res://scripts/inventory.gd")
+
+var inventory: CanvasLayer
 
 var _fade: ColorRect
 var _busy := false
@@ -34,6 +37,8 @@ func _ready() -> void:
 	_build_panel(layer)
 	_build_dialogue(layer)
 	_build_ending(layer)
+	inventory = Inventory.new()
+	add_child(inventory)
 	_fade = ColorRect.new()
 	_fade.color = Color(0, 0, 0, 0)
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)

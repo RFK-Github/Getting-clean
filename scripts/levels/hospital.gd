@@ -54,24 +54,9 @@ const Football := preload("res://scripts/activities/football.gd")
 const Swimming := preload("res://scripts/activities/swimming.gd")
 const ACTIVITY_IDS := {"Basketball": "basketball", "Football": "football", "Swimming": "swimming"}
 
-## The five personal items: where the real one is, and where fake copies appear under the influence.
-const ITEMS := [
-	{"id": "drawing", "prompt": "A child's drawing", "pos": Vector3(-6.28, 0.485, -18.62), "rot": 20.0,
-		"fakes": [Vector3(6.0, 0.775, -41.0), Vector3(-7.3, 0.485, -5.0)],
-		"message": "A child's drawing. A big figure and a small one, holding hands under a yellow sun. Your chest tightens. You don't know why."},
-	{"id": "photo", "prompt": "A photo", "pos": Vector3(7.5, 0.78, -14.7), "rot": -15.0,
-		"fakes": [Vector3(13.0, 1.15, -27.0), Vector3(-24.9, 0.63, -22.0)],
-		"message": "A creased photo. You, your wife, and a little girl on your shoulders, laughing. You look at the girl for a long time."},
-	{"id": "teddy", "prompt": "A teddy bear", "pos": Vector3(11.4, 0.48, -60.3), "rot": -90.0,
-		"fakes": [Vector3(-41.0, 0.0, -62.0), Vector3(-31.2, 0.0, -29.3)],
-		"message": "A worn teddy bear with one button eye. You've held it before. Smaller hands used to hold it too."},
-	{"id": "bracelet", "prompt": "A bracelet", "pos": Vector3(21.2, 0.0, -43.5), "rot": 0.0,
-		"fakes": [Vector3(-1.2, 0.0, -48.0), Vector3(4.2, 1.15, -7.6)],
-		"message": "Plastic beads on elastic. The letters spell D-A-D. It's far too small for your wrist."},
-	{"id": "ring", "prompt": "A ring", "pos": Vector3(-14.45, 0.93, -24.25), "rot": 0.0,
-		"fakes": [Vector3(-17.95, 0.6, -20.55), Vector3(6.0, 0.775, -36.0)],
-		"message": "Your wedding ring. You don't remember taking it off. You put it back on. It still fits."},
-]
+const StoryItems := preload("res://scripts/story_items.gd")
+const ITEMS := StoryItems.ITEMS
+const LETTERS := StoryItems.LETTERS
 
 ## Staff and patients who recognise him (from Config.HINT_LINES_FROM_DAY).
 const HINTS := {
@@ -85,18 +70,6 @@ const HINTS := {
 	"Dee": ["You were here before. Before any of us."],
 	"Walt": ["Didn't you get out? I thought you got out."],
 }
-
-## The wife's letters. They get shorter and colder.
-const LETTERS := [
-	{"id": "letter_1", "month": "March", "years_after": 0, "pos": Vector3(-17.95, 0.6, -20.55),
-		"text": "My love,\n\nThe house is so quiet. Some nights I still set the table for three, and then I just sit there.\n\nI'm not angry. I just need you to come back to me. Get well. I'll be here.\n\nAll my love,\nC."},
-	{"id": "letter_2", "month": "November", "years_after": 1, "pos": Vector3(5.6, 1.15, -7.4),
-		"text": "Hi,\n\nThe doctor says you have good days and bad days. I came once, but they said you didn't know who I was.\n\nPlease get better.\n\nC."},
-	{"id": "letter_3", "month": "June", "years_after": 3, "pos": Vector3(9.6, 1.31, -20.0),
-		"text": "I don't know if you read these. Write back if you can.\n\nC."},
-	{"id": "letter_4", "month": "January", "years_after": -1, "pos": Vector3(6.3, 0.775, -41.2),
-		"text": "I need to tell you something when I visit. Please be clean.\n\nC."},
-]
 
 
 func get_settings() -> Dictionary:
@@ -196,10 +169,8 @@ func _items_and_letters() -> void:
 		p.item_id = l["id"]
 		p.prompt = "A letter"
 		p.title = "A LETTER FROM YOUR WIFE"
-		var year: int = Config.YEAR_NOW if l["years_after"] < 0 else Config.YEAR_HE_THINKS + l["years_after"]
-		p.message = "%s %d
-
-%s" % [l["month"], year, l["text"]]
+		p.message = "%s\n\n%s" % [StoryItems.letter_date(l), l["text"]]
+		p.add_child(sparkle(0.25))
 		p.shape_size = Vector3(0.4, 0.25, 0.4)
 		p.position = l["pos"]
 		p.rotation.y = randf_range(-0.4, 0.4)
@@ -233,17 +204,42 @@ func _item_pickup(it: Dictionary, kind: String) -> Pickup:
 	p.rotation_degrees.y = it["rot"]
 	p.shape_size = Vector3(0.45, 0.35, 0.45)
 	p.add_child(_item_visual(it["id"]))
+	p.add_child(sparkle(0.4))
 	add_child(p)
 	return p
 
 
+## A soft pulsing glint above an item, so it can be spotted from across a room.
+## The pickup animates it (scripts/pickup.gd); it shows through the fog.
+func sparkle(size: float) -> MeshInstance3D:
+	var quad := QuadMesh.new()
+	quad.size = Vector2(size, size)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.no_depth_test = false
+	m.albedo_texture = Tex.get_texture("sun")
+	m.albedo_color = Config.ITEM_SPARKLE_COLOR
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	m.set("disable_fog", true)
+	quad.material = m
+	var mi := MeshInstance3D.new()
+	mi.name = "Sparkle"
+	mi.mesh = quad
+	mi.position.y = 0.12
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
+
+
 func _item_visual(id: String) -> Node3D:
 	var root := Node3D.new()
-	var glint := Color(0.08, 0.07, 0.05)   # a faint glow so they can be found
+	var glint := Color(0.12, 0.1, 0.07)   # a faint glow so they can be found
 	match id:
 		"drawing", "photo":
 			var plane := PlaneMesh.new()
-			plane.size = Vector2(0.3, 0.21) if id == "drawing" else Vector2(0.1, 0.125)
+			plane.size = Vector2(0.3, 0.21) if id == "drawing" else Vector2(0.16, 0.2)
 			plane.material = mat(id, Color.WHITE, 1.0, false, glint)
 			var mi := MeshInstance3D.new()
 			mi.mesh = plane
@@ -260,12 +256,12 @@ func _item_visual(id: String) -> Node3D:
 		"bracelet", "ring":
 			var torus := TorusMesh.new()
 			if id == "bracelet":
-				torus.inner_radius = 0.03
-				torus.outer_radius = 0.04
+				torus.inner_radius = 0.05
+				torus.outer_radius = 0.065
 				torus.material = mat("plain", Color(0.9, 0.5, 0.7), 1.0, false, glint)
 			else:
-				torus.inner_radius = 0.009
-				torus.outer_radius = 0.013
+				torus.inner_radius = 0.016
+				torus.outer_radius = 0.024
 				torus.material = mat("plain", Color(0.9, 0.75, 0.3), 1.0, false, Color(0.35, 0.28, 0.1))
 			torus.rings = 10
 			torus.ring_segments = 4
@@ -277,7 +273,7 @@ func _item_visual(id: String) -> Node3D:
 				for i in 6:
 					var a := TAU * i / 6.0
 					var bead_color: Color = [Color(0.9, 0.9, 0.2), Color(0.3, 0.6, 0.9), Color(0.9, 0.3, 0.3)][i % 3]
-					box(Vector3(cos(a) * 0.035, 0.012, sin(a) * 0.035), Vector3(0.014, 0.014, 0.014),
+					box(Vector3(cos(a) * 0.058, 0.016, sin(a) * 0.058), Vector3(0.022, 0.022, 0.022),
 						mat("plain", bead_color, 1.0, false, glint), false, root)
 	return root
 
@@ -666,6 +662,7 @@ func _pool() -> void:
 	box(Vector3(36.6, 0.9, -30), Vector3(0.04, 0.04, 21.2), rope, false)
 
 	hsign("SUPERVISED SWIMMING ONLY", Vector3(20.23, 2.6, -24), 90)
+	table(Vector3(21.0, 0, -43.2), Vector2(0.8, 0.6))   # poolside table (the bracelet lies on it)
 	# Lifeguard chair
 	box(Vector3(38.2, 0.9, -30), Vector3(0.7, 1.8, 0.7), m_metal)
 	box(Vector3(38.2, 2.0, -30), Vector3(0.7, 0.1, 0.7), m_white, false)
