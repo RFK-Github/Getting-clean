@@ -6,6 +6,9 @@ extends Node
 var current_level: String = Config.START_LEVEL
 var previous_level := ""
 var wake_message := ""   # shown when the hospital loads after a day passes
+var in_cutscene := false
+
+const CutscenePlayer := preload("res://scripts/cutscenes/cutscene_player.gd")
 
 var _fade: ColorRect
 var _busy := false
@@ -47,6 +50,19 @@ func change_level(level_id: String) -> void:
 	back.tween_property(_fade, "color:a", 0.0, Config.LEVEL_FADE_TIME)
 	await back.finished
 	_busy = false
+
+
+# ------------------------------------------------------------------ Cutscenes
+
+## Plays an in-engine cutscene (a script extending cutscene_base.gd) over the game.
+## The game is paused while it plays. Use with await.
+func play_cutscene(scene_script: GDScript) -> void:
+	in_cutscene = true
+	var p := CutscenePlayer.new()
+	add_child(p)
+	await p.play(scene_script)
+	p.queue_free()
+	in_cutscene = false
 
 
 # ------------------------------------------------------------------ Endings

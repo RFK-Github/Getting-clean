@@ -5,6 +5,7 @@ extends Node3D
 const Psx := preload("res://scripts/psx.gd")
 const Tex := preload("res://scripts/textures.gd")
 const Pickup := preload("res://scripts/pickup.gd")
+const POST_SHADER := preload("res://shaders/post.gdshader")
 
 ## Where the player starts this time.
 var spawn := Transform3D.IDENTITY
@@ -22,6 +23,47 @@ func build() -> void:
 ## camera_far, flashlight_on, hallucinations, episodes, navigation, withdrawal_rate, start_message
 func get_settings() -> Dictionary:
 	return {}
+
+
+## WorldEnvironment (background, ambient light, fog) from a get_settings() dictionary.
+func make_environment(s: Dictionary) -> WorldEnvironment:
+	var fog_color: Color = s.get("fog_color", Color.BLACK)
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = fog_color
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = s.get("ambient_color", Color.WHITE)
+	env.ambient_light_energy = s.get("ambient_energy", 0.2)
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.fog_enabled = true
+	env.fog_light_color = fog_color
+	env.fog_sun_scatter = s.get("fog_sun_scatter", 0.0)
+	if s.get("fog_mode", "exponential") == "depth":
+		env.fog_mode = Environment.FOG_MODE_DEPTH
+		env.fog_density = s.get("fog_density", 1.0)
+		env.fog_depth_begin = s.get("fog_depth_begin", 0.0)
+		env.fog_depth_end = s.get("fog_depth_end", 100.0)
+		env.fog_depth_curve = s.get("fog_depth_curve", 1.0)
+	else:
+		env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
+		env.fog_density = s.get("fog_density", 0.1)
+	var we := WorldEnvironment.new()
+	we.environment = env
+	return we
+
+
+## Post-processing material (shaders/post.gdshader) from a get_settings() dictionary.
+func make_post_material(s: Dictionary) -> ShaderMaterial:
+	var tint: Color = s.get("tint", Color.WHITE)
+	var m := ShaderMaterial.new()
+	m.shader = POST_SHADER
+	m.set_shader_parameter("tint", Vector3(tint.r, tint.g, tint.b))
+	m.set_shader_parameter("tint_strength", s.get("tint_strength", 0.0))
+	m.set_shader_parameter("color_depth", Config.COLOR_DEPTH)
+	m.set_shader_parameter("dither_strength", Config.DITHER_STRENGTH)
+	m.set_shader_parameter("vignette", s.get("vignette", Config.VIGNETTE))
+	m.set_shader_parameter("numb", s.get("numb", 0.0))
+	return m
 
 
 func mat(texture: String, color := Color.WHITE, uv_scale := Config.TEXTURE_SCALE,

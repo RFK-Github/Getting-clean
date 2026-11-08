@@ -66,6 +66,8 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Game.in_cutscene or Game.is_reading() or Game.is_ending():
+		return  # these pause the game themselves
 	if event.is_action_pressed("pause"):
 		if _root.visible:
 			close()

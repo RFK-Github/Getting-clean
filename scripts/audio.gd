@@ -133,6 +133,58 @@ static func heartbeat() -> AudioStreamWAV:
 	return _make(samples)
 
 
+## A scream: rising, harsh, with tyres screeching underneath (no loop).
+static func scream() -> AudioStreamWAV:
+	var n := int(RATE * 1.4)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 21
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var phase := 0.0
+	var band := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var freq := 700.0 + 500.0 * minf(t / 0.3, 1.0) + sin(TAU * 7.0 * t) * 40.0
+		phase += TAU * freq / RATE
+		var voice := (fposmod(phase / TAU, 1.0) * 2.0 - 1.0) * 0.35 + sin(phase * 2.0) * 0.15
+		band = band * 0.7 + rng.randf_range(-1.0, 1.0) * 0.3
+		var tyres := band * 0.5 * clampf((t - 0.2) / 0.2, 0.0, 1.0)
+		var env := clampf(t / 0.05, 0.0, 1.0) * clampf((1.4 - t) / 0.3, 0.0, 1.0)
+		samples[i] = (voice + tyres) * env
+	var w := _make(samples)
+	w.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return w
+
+
+## Car horn: two flat tones (no loop).
+static func horn() -> AudioStreamWAV:
+	var n := int(RATE * 1.0)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var s := signf(sin(TAU * 415.0 * t)) * 0.2 + signf(sin(TAU * 523.0 * t)) * 0.2
+		samples[i] = s * clampf((1.0 - t) / 0.1, 0.0, 1.0)
+	var w := _make(samples)
+	w.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return w
+
+
+## Steady rain (loop).
+static func rain() -> AudioStreamWAV:
+	var n := RATE * 2
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 17
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var soft := 0.0
+	for i in n:
+		soft = soft * 0.6 + rng.randf_range(-1.0, 1.0) * 0.4
+		var drop := rng.randf_range(-1.0, 1.0) * 0.6 if rng.randf() < 0.002 else 0.0
+		samples[i] = soft * 0.45 + drop
+	return _make(samples)
+
+
 static func _make(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var data := PackedByteArray()
 	data.resize(samples.size() * 2)

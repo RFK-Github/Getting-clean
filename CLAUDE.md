@@ -19,6 +19,7 @@ Godot 4 project: first-person psychological horror game about addiction, PS1 sty
 - `scripts/levels/`: levels built from boxes in code, all extend `level_base.gd` (`build()`, `get_settings()`, `spawn`)
   - `philadelphia.gd`: level 1. `hospital.gd`: level 2 (map of all rooms at the top of the file)
 - `scripts/props/`: reusable scripted props (vehicles, fog figure, mirror)
+- `scripts/cutscenes/`: in-engine cutscenes extending `cutscene_base.gd` (timeline via `at()`, `say()`, `fade()`, placeholder `figure()`s); played with `await Game.play_cutscene(script)`, which pauses the game. Flashbacks 1-3 are listed in `main.gd` `FLASHBACKS` and play at the kneeling point of episodes
 - `scripts/npc.gd`: non-hostile NPCs (doctor/nurse/patient/therapist), waypoints or stand/sit/lie
 - `Game.show_text(title, body)`: reading panel (clipboard, schedule board, later letters)
 - `scripts/episode.gd` (withdrawal episode, `flashback_point` signal for step 6) and `scripts/hallucination.gd`

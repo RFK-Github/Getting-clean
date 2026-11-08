@@ -221,6 +221,17 @@ const LETTER_WITHDRAWAL_RELIEF := 10.0
 const ITEM_FLICKER := 0.6                    # under the influence: how often real items vanish (0-1)
 const FAKE_COPIES_PER_ITEM := 1              # under the influence: decoys that turn to nothing
 
+# ---------- Cutscenes / flashbacks ----------
+# (Each scene's own timeline - when lines appear, camera moves - lives in its script in scripts/cutscenes/.)
+const CUTSCENE_FADE_TIME := 1.0              # fade in/out of a cutscene
+const CUTSCENE_SKIP_AFTER := 1.5             # seconds before E can skip
+const FLASHBACK_DRIVE_SPEED := 16.0          # flashback 1: how fast the world passes the car (m/s)
+const FLASHBACK_ONCOMING_SPEED := 30.0       # flashback 1: the other car
+const CUTSCENE_ENGINE_DB := -16.0
+const CUTSCENE_SCREAM_DB := -2.0             # loud bus
+const CUTSCENE_RAIN_DB := -14.0
+const CUTSCENE_TRAIN_DB := -2.0              # loud bus
+
 # ---------- Story / HUD ----------
 const ITEMS_TOTAL := 5
 const LETTERS_TOTAL := 4
