@@ -93,6 +93,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("interact") and not frozen:
 		if _target != null and is_instance_valid(_target):
 			_target.call("interact")
+			_target = null   # re-read the prompt next frame (it may have changed, e.g. "Turn off")
 
 
 func _physics_process(delta: float) -> void:

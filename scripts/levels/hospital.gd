@@ -48,6 +48,13 @@ var _push_window := 0.0   # time left to press E again at the exit and push past
 var _activity: Node = null
 var _board_label: Label3D
 var _board_refresh := 0.0
+var _room_lamp: OmniLight3D
+var _tv_screen: Node3D
+var _tv_on := false
+var _tv_sound: AudioStreamPlayer3D
+var _tv_light: OmniLight3D
+var _tv_news: Label3D
+var _said := {}       # one-time remarks already made
 
 const Basketball := preload("res://scripts/activities/basketball.gd")
 const Football := preload("res://scripts/activities/football.gd")
@@ -119,12 +126,19 @@ func build() -> void:
 	_items_and_letters()
 	_activity_spots()
 	_calendars()
+	_interactions()
 
 	var hum := AudioStreamPlayer.new()
 	hum.stream = Audio.hum()
 	hum.volume_db = Config.AMBIENT_HUM_DB
 	hum.autoplay = true
 	add_child(hum)
+	var music := AudioStreamPlayer.new()
+	music.stream = Audio.hospital_music()
+	music.bus = Settings.MUSIC_BUS
+	music.volume_db = Config.MUSIC_DB
+	music.autoplay = true
+	add_child(music)
 
 	spawn = _lobby_spawn if Game.previous_level == "philadelphia" else bed_spawn
 	Game.wake_message = ""
@@ -138,6 +152,7 @@ func _process(delta: float) -> void:
 			l.light_energy = lerpf(l.light_energy, Config.LAMP_ENERGY, 0.2)
 
 	_push_window = maxf(0.0, _push_window - delta)
+	_tv_flicker()
 	_board_refresh -= delta
 	if _board_refresh <= 0.0 and _board_label:
 		_board_refresh = 1.0
@@ -292,6 +307,206 @@ func _on_exit() -> void:
 		else "Not yet. You're getting closer."
 	Withdrawal.post_message("Dr. Reyes: \"%s\"     (E again: push past him)" % line)
 	_push_window = Config.FORCE_EXIT_WINDOW
+
+
+const BOOKS := [
+	"A paperback thriller. Someone has torn out the last chapter.",
+	"A picture book about a little bear who can't find his way home. A name was written inside the cover, then scribbled out.",
+	"A road atlas of Pennsylvania. Philadelphia is circled in pen, over and over.",
+	"'One Day at a Time.' Every page about forgiveness is underlined, twice.",
+]
+const VENDING := [
+	"A paper cup of coffee. It tastes like the cup. You drink it anyway.",
+	"The machine takes your coins and gives you nothing. Of course it does.",
+	"Hot chocolate. The kind she always asked for... You put the cup down.",
+]
+
+
+## Things you can use: TV, radio, light switch, tap, wardrobe, filing cabinet, books, vending machine.
+func _interactions() -> void:
+	# --- TV in the common room
+	_tv_sound = AudioStreamPlayer3D.new()
+	_tv_sound.stream = Audio.tv()
+	_tv_sound.volume_db = Config.TV_DB
+	_tv_sound.unit_size = 4.0
+	_tv_sound.position = Vector3(14, 1.0, -44.5)
+	add_child(_tv_sound)
+	_tv_light = OmniLight3D.new()
+	_tv_light.position = Vector3(14, 1.0, -43.6)
+	_tv_light.light_color = Color(0.6, 0.7, 0.95)
+	_tv_light.omni_range = 5.0
+	_tv_light.visible = false
+	add_child(_tv_light)
+	_tv_news = sign_text("NEWS AT SIX  -  OCTOBER %d" % Config.YEAR_NOW, Vector3(14, 0.82, -44.72), 0, 12, Color(0.95, 0.95, 0.9))
+	_tv_news.visible = false
+	_toggle_spot(Vector3(14, 0.4, -44.3), Vector3(1.6, 1.2, 0.8),
+		func(): return "Turn off the TV" if _tv_on else "Turn on the TV",
+		func(): set_tv(not _tv_on))
+
+	# --- Radio on the common room table
+	var radio_pos := Vector3(5.55, 0.775, -36.35)
+	box(radio_pos + Vector3(0, 0.09, 0), Vector3(0.32, 0.18, 0.12), m_wood, false)
+	box(radio_pos + Vector3(-0.06, 0.09, 0.061), Vector3(0.14, 0.12, 0.01), m_dark, false)   # speaker
+	box(radio_pos + Vector3(0.1, 0.11, 0.061), Vector3(0.05, 0.05, 0.01), m_metal, false)   # dial
+	var radio := AudioStreamPlayer3D.new()
+	radio.stream = Audio.radio_song()
+	radio.volume_db = Config.RADIO_DB
+	radio.unit_size = 3.0
+	radio.position = radio_pos
+	add_child(radio)
+	_toggle_spot(radio_pos, Vector3(0.45, 0.35, 0.35),
+		func(): return "Turn off the radio" if radio.playing else "Turn on the radio",
+		func():
+			if radio.playing:
+				radio.stop()
+			else:
+				radio.play()
+				_remark("radio", "An old song. You know every word. You don't know how."))
+
+	# --- Light switch by the door of room 12
+	box(Vector3(-15.95, 1.2, -27.79), Vector3(0.08, 0.12, 0.02), m_white, false)
+	_toggle_spot(Vector3(-15.95, 0.95, -27.6), Vector3(0.3, 0.5, 0.3),
+		func(): return "Switch the light off" if _room_lamp.visible else "Switch the light on",
+		func():
+			_room_lamp.visible = not _room_lamp.visible
+			(_room_lamp.get_meta("fixture") as GeometryInstance3D).material_override = null if _room_lamp.visible else m_dark)
+
+	# --- Tap over the sink in room 12
+	box(Vector3(-14.3, 1.0, -24.5), Vector3(0.12, 0.04, 0.04), m_metal, false)
+	var stream := box(Vector3(-14.4, 0.95, -24.5), Vector3(0.02, 0.1, 0.02), mat("plain", Color(0.7, 0.8, 0.9), 1.0, false, Color(0.2, 0.25, 0.3)), false)
+	stream.visible = false
+	var water := AudioStreamPlayer3D.new()
+	water.stream = Audio.water()
+	water.volume_db = Config.WATER_DB
+	water.unit_size = 2.0
+	water.position = Vector3(-14.4, 0.95, -24.5)
+	add_child(water)
+	_toggle_spot(Vector3(-14.45, 0.92, -24.8), Vector3(0.4, 0.3, 0.3),
+		func(): return "Turn off the tap" if water.playing else "Turn on the tap",
+		func():
+			stream.visible = not water.playing
+			if water.playing:
+				water.stop()
+			else:
+				water.play()
+				_remark("tap", "Cold water on your face. Your hands are steadier for a moment."))
+
+	# --- Wardrobe in room 12 (opens toward the room, +X)
+	_wardrobe(Vector3(-19.45, 0, -26.6))
+
+	# --- Filing cabinet in the office (drawer pulls out toward the room, -X)
+	_filing_cabinet(Vector3(9.6, 0, -20))
+
+	# --- Books on the common room shelf
+	var books := Pickup.new()
+	books.kind = "read"
+	books.prompt = "Take a book"
+	books.title = "A BOOK FROM THE SHELF"
+	var book_i := [0]
+	books.text_source = func():
+		book_i[0] += 1
+		return BOOKS[(book_i[0] - 1) % BOOKS.size()]
+	books.shape_size = Vector3(0.6, 1.6, 2.4)
+	books.position = Vector3(2.75, 0.2, -40)
+	add_child(books)
+
+	# --- Vending machine in the lobby
+	box(Vector3(-7.45, 0.95, -9.4), Vector3(0.6, 1.9, 0.8), mat("plain", Color(0.55, 0.15, 0.12), 1.0))
+	box(Vector3(-7.14, 1.15, -9.4), Vector3(0.02, 0.9, 0.6), mat("plain", Color(0.85, 0.85, 0.8), 1.0, true, Color(0.5, 0.5, 0.45)), false)
+	var cup_i := [0]
+	_toggle_spot(Vector3(-6.9, 0.2, -9.4), Vector3(0.5, 1.6, 0.9),
+		func(): return "Vending machine",
+		func():
+			Withdrawal.post_message(VENDING[cup_i[0] % VENDING.size()])
+			cup_i[0] += 1)
+
+
+func set_tv(on: bool) -> void:
+	_tv_on = on
+	_tv_light.visible = on
+	_tv_news.visible = on
+	if on:
+		_tv_sound.play()
+	else:
+		_tv_sound.stop()
+		(_tv_screen as GeometryInstance3D).material_override = null
+
+
+func _tv_flicker() -> void:
+	if not _tv_on:
+		return
+	var c := Color(0.5, 0.55, 0.65) * randf_range(0.6, 1.1)
+	if not (_tv_screen as GeometryInstance3D).material_override:
+		(_tv_screen as GeometryInstance3D).material_override = mat("plain", c, 1.0, true, c)
+	var m := (_tv_screen as GeometryInstance3D).material_override as ShaderMaterial
+	m.set_shader_parameter("emission_color", c)
+	_tv_light.light_energy = randf_range(0.4, 0.9)
+
+
+## A spot you can use (E). prompt_fn gives the current prompt; it's re-read after each use.
+func _toggle_spot(pos: Vector3, size: Vector3, prompt_fn: Callable, action: Callable) -> Pickup:
+	var p := Pickup.new()
+	p.kind = "action"
+	p.shape_size = size
+	p.position = pos
+	p.prompt = prompt_fn.call()
+	p.action = func():
+		action.call()
+		p.prompt = prompt_fn.call()
+	add_child(p)
+	return p
+
+
+## Say something once per wake-up.
+func _remark(key: String, text: String) -> void:
+	if _said.has(key):
+		return
+	_said[key] = true
+	Withdrawal.post_message(text)
+
+
+func _wardrobe(base: Vector3) -> void:
+	var body := Node3D.new()
+	body.position = base
+	add_child(body)
+	box(Vector3(0, 1.0, 0), Vector3(0.6, 2.0, 1.0), m_wood, true, body)      # cabinet (collision)
+	box(Vector3(0.0, 1.85, 0), Vector3(0.04, 0.04, 0.9), m_metal, false, body)   # rail
+	var coat := mat("fabric", Config.JACKET_COLOR * 2.5, 2.0, false)
+	box(Vector3(0.05, 1.35, -0.2), Vector3(0.12, 0.9, 0.4), coat, false, body)
+	box(Vector3(0.05, 1.45, 0.22), Vector3(0.1, 0.7, 0.35), mat("fabric", Color(0.5, 0.55, 0.65) * 2.0, 2.0, false), false, body)
+	var hinge := Node3D.new()
+	hinge.position = Vector3(0.31, 0, -0.5)
+	body.add_child(hinge)
+	box(Vector3(0, 1.0, 0.5), Vector3(0.03, 1.96, 1.0), m_wood, false, hinge)
+	box(Vector3(0.03, 1.0, 0.9), Vector3(0.03, 0.15, 0.04), m_metal, false, hinge)   # handle
+	var open := [false]
+	_toggle_spot(base + Vector3(0.6, 0.4, 0), Vector3(0.6, 1.4, 1.1),
+		func(): return "Close the wardrobe" if open[0] else "Open the wardrobe",
+		func():
+			open[0] = not open[0]
+			var opening: bool = open[0]
+			create_tween().tween_property(hinge, "rotation:y", -1.75 if opening else 0.0, 0.5)
+			if opening:
+				_remark("wardrobe", "More clothes than you remember bringing. Some of them don't fit any more."))
+
+
+func _filing_cabinet(base: Vector3) -> void:
+	box(base + Vector3(0, 0.65, 0), Vector3(0.6, 1.3, 0.6), m_metal)
+	var drawer := Node3D.new()
+	drawer.position = base
+	add_child(drawer)
+	box(Vector3(-0.31, 1.0, 0), Vector3(0.03, 0.36, 0.52), m_metal, false, drawer)      # front
+	box(Vector3(-0.31, 1.0, 0), Vector3(0.03, 0.04, 0.15), m_dark, false, drawer)      # handle
+	box(Vector3(-0.05, 1.0, 0), Vector3(0.5, 0.3, 0.48), mat("plain", Color(0.85, 0.8, 0.65), 1.0, false), false, drawer)   # files
+	var open := [false]
+	_toggle_spot(base + Vector3(-0.55, 0.6, 0), Vector3(0.5, 0.8, 0.7),
+		func(): return "Close the drawer" if open[0] else "Open the drawer",
+		func():
+			open[0] = not open[0]
+			var opening: bool = open[0]
+			create_tween().tween_property(drawer, "position:x", base.x - 0.4 if opening else base.x, 0.4)
+			if opening:
+				_remark("files", "Patient files. Yours is the thickest one in the drawer. Some of the pages are yellow with age."))
 
 
 ## Calendars around the center that don't agree with each other - or with him.
@@ -499,7 +714,7 @@ func _office() -> void:
 	chair(Vector3(7, 0, -13.6), 0.0)
 	chair(Vector3(6.4, 0, -15.8), PI)
 	chair(Vector3(7.6, 0, -15.8), PI)
-	box(Vector3(9.6, 0.65, -20), Vector3(0.6, 1.3, 0.6), m_metal)              # filing cabinet
+	# (filing cabinet with a drawer: _interactions)
 	box(Vector3(9.65, 1.0, -24), Vector3(0.5, 2.0, 2.0), m_wood)               # bookshelf
 	for i in 3:
 		box(Vector3(2.22, 1.7, -14.5 - i * 0.7), Vector3(0.04, 0.4, 0.5), m_wood, false)  # diplomas
@@ -548,13 +763,13 @@ func _room_11() -> void:
 
 func _room_12() -> void:
 	room(-20, -14, -28, -20, m_floor, {"n": [[-15.0, 1.2]]})
-	lamp(Vector3(-17, 0, -24), false, 0.6)
+	_room_lamp = lamp(Vector3(-17, 0, -24), false, 0.6)
 
 	hospital_bed(Vector3(-18.9, 0, -21.25), 0.0)
 	iv_stand(Vector3(-17.9, 0, -22.6))
 	box(Vector3(-17.95, 0.3, -20.55), Vector3(0.5, 0.6, 0.45), m_wood)          # nightstand
 	box(Vector3(-16.5, 1.6, -20.22), Vector3(1.4, 1.1, 0.04), m_window, false)  # frosted window
-	box(Vector3(-19.45, 1.0, -26.6), Vector3(0.6, 2.0, 1.0), m_wood)            # wardrobe
+	# (wardrobe that opens: _interactions)
 	chair(Vector3(-15.2, 0, -21.2), PI * 0.75)
 
 	# Clipboard at the foot of the bed
@@ -623,7 +838,7 @@ func _common_room() -> void:
 	sofa(Vector3(17.2, 0, -40), PI * 0.5)
 	box(Vector3(14, 0.35, -44.9), Vector3(1.8, 0.7, 0.5), m_wood)        # TV stand
 	box(Vector3(14, 1.0, -44.9), Vector3(1.2, 0.7, 0.3), m_dark)
-	box(Vector3(14, 1.0, -44.74), Vector3(1.05, 0.55, 0.02), mat("plain", Color(0.15, 0.2, 0.2), 1.0, true, Color(0.1, 0.16, 0.16)), false)
+	_tv_screen = box(Vector3(14, 1.0, -44.74), Vector3(1.05, 0.55, 0.02), mat("plain", Color(0.15, 0.2, 0.2), 1.0, true, Color(0.1, 0.16, 0.16)), false)
 	box(Vector3(2.4, 1.0, -40), Vector3(0.4, 2.0, 2.4), m_wood)          # bookshelf
 	plant(Vector3(17.3, 0, -32.7))
 
@@ -827,16 +1042,20 @@ func _wall_piece(along_z: bool, fixed: float, a: float, b: float, y0: float, y1:
 		box(Vector3(mid, y, fixed), Vector3(b - a, y1 - y0, T), wall_mat, true, null, 1.5)
 
 
-func lamp(pos: Vector3, flicker := false, energy := Config.LAMP_ENERGY, height := H) -> void:
-	box(Vector3(pos.x, height - 0.03, pos.z), Vector3(1.2, 0.05, 0.3), m_lamp, false)
+## A fluorescent ceiling light. pos.y = the floor height it hangs over (0 or the 2nd floor).
+## Returns the light; its glowing fixture is stored as meta "fixture" (for light switches).
+func lamp(pos: Vector3, flicker := false, energy := Config.LAMP_ENERGY, height := H) -> OmniLight3D:
+	var fixture := box(Vector3(pos.x, pos.y + height - 0.03, pos.z), Vector3(1.2, 0.05, 0.3), m_lamp, false)
 	var l := OmniLight3D.new()
-	l.position = Vector3(pos.x, height - 0.4, pos.z)
+	l.position = Vector3(pos.x, pos.y + height - 0.4, pos.z)
 	l.light_color = Config.LAMP_COLOR
 	l.light_energy = energy
 	l.omni_range = Config.LAMP_RANGE * (height / H)
+	l.set_meta("fixture", fixture)
 	add_child(l)
 	if flicker:
 		_flicker.append(l)
+	return l
 
 
 ## Big soft light high above an outdoor area (overcast sky).

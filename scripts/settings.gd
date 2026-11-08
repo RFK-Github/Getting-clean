@@ -5,9 +5,11 @@ signal changed
 
 const PATH := "user://settings.cfg"
 const LOUD_BUS := "Loud"
+const MUSIC_BUS := "Music"
 
 var screen_shake := true
 var loud_volume := 1.0  # 0..1 for loud sounds
+var music_volume := 1.0 # 0..1 for background music
 
 
 func _ready() -> void:
@@ -31,10 +33,20 @@ func set_loud_volume(value: float) -> void:
 	changed.emit()
 
 
+func set_music_volume(value: float) -> void:
+	music_volume = clampf(value, 0.0, 1.0)
+	apply()
+	save_settings()
+	changed.emit()
+
+
 func apply() -> void:
 	var i := AudioServer.get_bus_index(LOUD_BUS)
 	AudioServer.set_bus_volume_db(i, linear_to_db(maxf(loud_volume, 0.0001)))
 	AudioServer.set_bus_mute(i, loud_volume <= 0.001)
+	var m := AudioServer.get_bus_index(MUSIC_BUS)
+	AudioServer.set_bus_volume_db(m, linear_to_db(maxf(music_volume, 0.0001)))
+	AudioServer.set_bus_mute(m, music_volume <= 0.001)
 
 
 func load_settings() -> void:
@@ -43,12 +55,14 @@ func load_settings() -> void:
 		return
 	screen_shake = cf.get_value("accessibility", "screen_shake", true)
 	loud_volume = cf.get_value("accessibility", "loud_volume", 1.0)
+	music_volume = cf.get_value("audio", "music_volume", 1.0)
 
 
 func save_settings() -> void:
 	var cf := ConfigFile.new()
 	cf.set_value("accessibility", "screen_shake", screen_shake)
 	cf.set_value("accessibility", "loud_volume", loud_volume)
+	cf.set_value("audio", "music_volume", music_volume)
 	cf.save(PATH)
 
 
@@ -78,12 +92,13 @@ func _setup_audio_bus() -> void:
 	if AudioServer.get_bus_effect_count(0) == 0:
 		AudioServer.add_bus_effect(0, AudioEffectLowPassFilter.new())
 		AudioServer.set_bus_effect_enabled(0, 0, false)
-	if AudioServer.get_bus_index(LOUD_BUS) != -1:
-		return
-	AudioServer.add_bus()
-	var i := AudioServer.bus_count - 1
-	AudioServer.set_bus_name(i, LOUD_BUS)
-	AudioServer.set_bus_send(i, "Master")
+	for bus_name in [LOUD_BUS, MUSIC_BUS]:
+		if AudioServer.get_bus_index(bus_name) != -1:
+			continue
+		AudioServer.add_bus()
+		var i := AudioServer.bus_count - 1
+		AudioServer.set_bus_name(i, bus_name)
+		AudioServer.set_bus_send(i, "Master")
 
 
 func _setup_input() -> void:

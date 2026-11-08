@@ -3,6 +3,7 @@ extends CanvasLayer
 
 var _root: Control
 var _vol_label: Label
+var _music_label: Label
 
 
 func _ready() -> void:
@@ -51,6 +52,19 @@ func _ready() -> void:
 	slider.value_changed.connect(_on_volume)
 	box.add_child(slider)
 	_update_vol_label()
+
+	_music_label = Label.new()
+	box.add_child(_music_label)
+	var music := HSlider.new()
+	music.min_value = 0
+	music.max_value = 100
+	music.step = 5
+	music.value = Settings.music_volume * 100.0
+	music.value_changed.connect(func(v):
+		Settings.set_music_volume(v / 100.0)
+		_music_label.text = "Music: %d%%" % int(v))
+	box.add_child(music)
+	_music_label.text = "Music: %d%%" % int(round(Settings.music_volume * 100.0))
 
 	var resume := Button.new()
 	resume.text = "Resume"

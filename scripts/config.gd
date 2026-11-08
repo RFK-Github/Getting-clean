@@ -202,6 +202,10 @@ const MONSTER_CATCH_DISTANCE := 0.9
 # ---------- Sound (hospital) ----------
 const LOUD_SOUND_DB := -6.0                  # hallucination sound (bus "Loud")
 const AMBIENT_HUM_DB := -22.0
+const MUSIC_DB := -12.0                      # hospital background music (bus "Music")
+const TV_DB := -4.0
+const RADIO_DB := -2.0
+const WATER_DB := -8.0
 
 # ---------- Countdown (days until the wife visits) ----------
 const COUNTDOWN_DAYS := 7                    # caught or forced back to bed = one day passes; 0 = game over

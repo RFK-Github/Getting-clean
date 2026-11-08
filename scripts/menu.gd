@@ -140,6 +140,18 @@ func _build_ui() -> void:
 		_update_vol_label())
 	_settings.add_child(slider)
 	_update_vol_label()
+	var music_label := Label.new()
+	music_label.text = "Music: %d%%" % int(round(Settings.music_volume * 100.0))
+	_settings.add_child(music_label)
+	var music := HSlider.new()
+	music.min_value = 0
+	music.max_value = 100
+	music.step = 5
+	music.value = Settings.music_volume * 100.0
+	music.value_changed.connect(func(v):
+		Settings.set_music_volume(v / 100.0)
+		music_label.text = "Music: %d%%" % int(v))
+	_settings.add_child(music)
 	_button(_settings, "Back", func(): _show_settings(false))
 
 	var note := Label.new()
