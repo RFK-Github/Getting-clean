@@ -418,7 +418,13 @@ func _interactions() -> void:
 				_remark("tap", "Cold water on your face. Your hands are steadier for a moment."))
 
 	# --- Wardrobe in room 12 (opens toward the room, +X)
-	_wardrobe(Vector3(-19.45, 0, -26.6))
+	_wardrobe(Vector3(-19.45, 0, -26.6), 0.0, "clothes",
+		"More clothes than you remember bringing. Some of them don't fit any more.")
+	# Room 11: the other patient's wardrobe
+	_wardrobe(Vector3(-25.45, 0, -26.6), 0.0, "gown", "Someone else's things. You close it again quickly.")
+	# Staff lockers in the west hall (doors face south, into the hall)
+	for x in [-11.55, -10.9]:
+		_wardrobe(Vector3(x, 0, -31.45), -PI * 0.5, "locker", "A nurse's locker. A photo of two kids is taped inside the door.")
 
 	# --- Filing cabinet in the office (drawer pulls out toward the room, -X)
 	_filing_cabinet(Vector3(9.6, 0, -20))
@@ -492,29 +498,63 @@ func _remark(key: String, text: String) -> void:
 	Withdrawal.post_message(text)
 
 
-func _wardrobe(base: Vector3) -> void:
+## A closet with a door that swings open: hollow inside, with things in it.
+## yaw: which way the door faces (0 = +X, PI/2 = -Z, -PI/2 = +Z, PI = -X).
+## contents: "clothes" (his room), "gown" (another patient's), "locker" (staff locker).
+func _wardrobe(base: Vector3, yaw := 0.0, contents := "clothes", remark := "") -> void:
 	var body := Node3D.new()
 	body.position = base
+	body.rotation.y = yaw
 	add_child(body)
-	box(Vector3(0, 1.0, 0), Vector3(0.6, 2.0, 1.0), m_wood, true, body)      # cabinet (collision)
-	box(Vector3(0.0, 1.85, 0), Vector3(0.04, 0.04, 0.9), m_metal, false, body)   # rail
-	var coat := mat("fabric", Config.JACKET_COLOR * 2.5, 2.0, false)
-	box(Vector3(0.05, 1.35, -0.2), Vector3(0.12, 0.9, 0.4), coat, false, body)
-	box(Vector3(0.05, 1.45, 0.22), Vector3(0.1, 0.7, 0.35), mat("fabric", Color(0.5, 0.55, 0.65) * 2.0, 2.0, false), false, body)
+	var shell := m_metal if contents == "locker" else m_wood
+	var w := 0.6           # depth (x)
+	var d := 1.0 if contents != "locker" else 0.6   # width (z)
+	var h := 2.0
+	# Hollow cabinet: back, sides, top, bottom. One invisible collider for the whole thing.
+	box(Vector3(-w * 0.5 + 0.02, h * 0.5, 0), Vector3(0.04, h, d), shell, false, body)
+	box(Vector3(0, h * 0.5, -d * 0.5 + 0.02), Vector3(w, h, 0.04), shell, false, body)
+	box(Vector3(0, h * 0.5, d * 0.5 - 0.02), Vector3(w, h, 0.04), shell, false, body)
+	box(Vector3(0, h - 0.02, 0), Vector3(w, 0.04, d), shell, false, body)
+	box(Vector3(0, 0.04, 0), Vector3(w, 0.08, d), shell, false, body)
+	var solid := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(w, h, d)
+	cs.shape = shape
+	cs.position.y = h * 0.5
+	solid.add_child(cs)
+	body.add_child(solid)
+	# What's inside
+	box(Vector3(0.0, h - 0.18, 0), Vector3(0.03, 0.03, d - 0.1), m_metal, false, body)   # rail
+	match contents:
+		"clothes":
+			box(Vector3(0.0, 1.35, -0.22), Vector3(0.12, 0.9, 0.38), mat("fabric", Config.JACKET_COLOR * 2.5, 2.0, false), false, body)
+			box(Vector3(0.0, 1.45, 0.2), Vector3(0.1, 0.7, 0.34), mat("fabric", Color(0.5, 0.55, 0.65) * 2.0, 2.0, false), false, body)
+			box(Vector3(0.0, 0.2, 0.0), Vector3(0.4, 0.2, 0.5), mat("plain", Color(0.55, 0.45, 0.35), 1.0, false), false, body)   # shoebox
+		"gown":
+			box(Vector3(0.0, 1.3, 0.0), Vector3(0.1, 1.0, 0.45), mat("fabric", Color(0.62, 0.72, 0.64) * 2.4, 2.0, false), false, body)
+			box(Vector3(0.0, 0.2, -0.25), Vector3(0.3, 0.25, 0.3), m_sheet, false, body)   # folded towels
+		"locker":
+			box(Vector3(0.0, 1.3, 0.0), Vector3(0.1, 0.8, 0.4), mat("fabric", Color(0.45, 0.62, 0.72) * 2.4, 2.0, false), false, body)   # scrubs
+			box(Vector3(0.0, 1.6, 0.0), Vector3(0.45, 0.03, d - 0.08), shell, false, body)   # shelf
+			box(Vector3(0.0, 1.7, 0.1), Vector3(0.2, 0.15, 0.15), m_white, false, body)    # mug
+	# The door, hinged at the front-left edge; it swings out toward +X.
 	var hinge := Node3D.new()
-	hinge.position = Vector3(0.31, 0, -0.5)
+	hinge.position = Vector3(w * 0.5 + 0.02, 0, -d * 0.5)
 	body.add_child(hinge)
-	box(Vector3(0, 1.0, 0.5), Vector3(0.03, 1.96, 1.0), m_wood, false, hinge)
-	box(Vector3(0.03, 1.0, 0.9), Vector3(0.03, 0.15, 0.04), m_metal, false, hinge)   # handle
+	box(Vector3(0, h * 0.5, d * 0.5), Vector3(0.03, h - 0.04, d), shell, false, hinge)
+	box(Vector3(0.03, h * 0.5, d - 0.1), Vector3(0.03, 0.15, 0.04), m_dark, false, hinge)   # handle
+	var name_word := "locker" if contents == "locker" else "wardrobe"
 	var open := [false]
-	_toggle_spot(base + Vector3(0.6, 0.4, 0), Vector3(0.6, 1.4, 1.1),
-		func(): return "Close the wardrobe" if open[0] else "Open the wardrobe",
+	var spot := _toggle_spot(Vector3.ZERO, Vector3(0.6, 1.4, d + 0.1),
+		func(): return ("Close the " if open[0] else "Open the ") + name_word,
 		func():
 			open[0] = not open[0]
-			var opening: bool = open[0]
-			create_tween().tween_property(hinge, "rotation:y", -1.75 if opening else 0.0, 0.5)
-			if opening:
-				_remark("wardrobe", "More clothes than you remember bringing. Some of them don't fit any more."))
+			create_tween().tween_property(hinge, "rotation:y", 1.75 if open[0] else 0.0, 0.5)
+			if open[0] and remark != "":
+				_remark("closet_%s" % str(base), remark))
+	spot.position = base + Vector3(0.6, 0.4, 0).rotated(Vector3.UP, yaw)
+	spot.rotation.y = yaw
 
 
 func _filing_cabinet(base: Vector3) -> void:
