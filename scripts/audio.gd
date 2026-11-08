@@ -134,7 +134,10 @@ static func heartbeat() -> AudioStreamWAV:
 
 
 ## A scream: rising, harsh, with tyres screeching underneath (no loop).
-static func scream() -> AudioStreamWAV:
+static func scream() -> AudioStream:
+	var clip := real_clip("woman_scream")
+	if clip != null:
+		return clip
 	var n := int(RATE * 1.4)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 21
@@ -183,6 +186,19 @@ static func rain() -> AudioStreamWAV:
 		var drop := rng.randf_range(-1.0, 1.0) * 0.6 if rng.randf() < 0.002 else 0.0
 		samples[i] = soft * 0.45 + drop
 	return _make(samples)
+
+
+const SOUND_DIR := "res://assets/sounds/"
+
+
+## A real recorded clip, if one has been put in assets/sounds/ as <name>.ogg, .wav or .mp3
+## (see assets/sounds/README.md). Otherwise null, and the generated placeholder is used.
+static func real_clip(name: String) -> AudioStream:
+	for ext in ["ogg", "wav", "mp3"]:
+		var path := "%s%s.%s" % [SOUND_DIR, name, ext]
+		if ResourceLoader.exists(path):
+			return load(path) as AudioStream
+	return null
 
 
 const LOFI_RATE := 8000   # music is lo-fi on purpose (and quicker to generate)
@@ -321,6 +337,71 @@ static func phone_ring() -> AudioStreamWAV:
 		var bell := signf(sin(TAU * 20.0 * t)) * 0.5 + 0.5   # the bell's clatter
 		samples[i] = (sin(TAU * 440.0 * t) + sin(TAU * 480.0 * t)) * 0.25 * bell if on else 0.0
 	return _make(samples, LOFI_RATE)
+
+
+## A sung "ah" sample: a pitched voice with vowel formants (used for laughter and screams).
+static func _voice(t: float, pitch: float, formants: Array, breath: float, rng: RandomNumberGenerator) -> float:
+	var s := 0.0
+	for k in range(1, 12):
+		var f := pitch * k
+		if f > 5000.0:
+			break
+		var amp := 0.0
+		for fm in formants:
+			amp += exp(-pow((f - fm[0]) / fm[1], 2.0))
+		s += sin(TAU * f * t) * amp / k
+	return s + rng.randf_range(-1.0, 1.0) * breath
+
+
+## A little girl laughing: a run of breathy "ha"s, rising and falling (no loop).
+static func child_laugh() -> AudioStream:
+	var clip := real_clip("child_laugh")
+	if clip != null:
+		return clip
+	if _cache.has("child_laugh"):
+		return _cache["child_laugh"]
+	var n := int(RATE * 1.8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 88
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var syll := 0.21
+	for i in n:
+		var t := float(i) / RATE
+		var k := int(t / syll)
+		var dt := fmod(t, syll)
+		var on := dt < 0.14 and k < 8
+		var env := sin(PI * clampf(dt / 0.14, 0.0, 1.0)) * (1.0 - k * 0.07) if on else 0.0
+		var pitch := 420.0 + 60.0 * sin(k * 1.3) - k * 6.0
+		var v := _voice(t, pitch, [[1100.0, 300.0], [2600.0, 500.0]], 0.25, rng)
+		samples[i] = v * env * 0.5
+	var w := _make(samples)
+	w.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	_cache["child_laugh"] = w
+	return w
+
+
+## A little girl screaming (no loop).
+static func child_scream() -> AudioStream:
+	var clip := real_clip("child_scream")
+	if clip != null:
+		return clip
+	if _cache.has("child_scream"):
+		return _cache["child_scream"]
+	var n := int(RATE * 1.3)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 99
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var pitch := 1050.0 + 250.0 * minf(t / 0.25, 1.0) + sin(TAU * 9.0 * t) * 30.0
+		var env := clampf(t / 0.04, 0.0, 1.0) * clampf((1.3 - t) / 0.3, 0.0, 1.0)
+		samples[i] = _voice(t, pitch, [[2500.0, 700.0], [3800.0, 900.0]], 0.35, rng) * env * 0.55
+	var w := _make(samples)
+	w.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	_cache["child_scream"] = w
+	return w
 
 
 ## A car hitting a tree: a deep impact, crumpling metal, then glass falling (no loop).

@@ -289,6 +289,7 @@ const SWIM_GOOD_ACCURACY := 0.7              # share of good strokes to "do well
 const CUTSCENE_FADE_TIME := 1.0              # fade in/out of a cutscene
 const CUTSCENE_SKIP_AFTER := 1.5             # seconds before E can skip
 const FLASHBACK_DRIVE_SPEED := 16.0          # flashback 1: how fast the world passes the car (m/s)
+const FLASHBACK_ONCOMING_SPEED := 14.0       # flashback 1: the other car (m/s)
 const GHOST_CAR_COLOR := Color(0.3, 0.32, 0.36)   # the car on the football lawn
 const CUTSCENE_ENGINE_DB := -16.0
 const CUTSCENE_SCREAM_DB := -2.0             # loud bus
@@ -303,6 +304,8 @@ const GIRL_INTERVAL := 70.0                  # seconds between appearances
 const GIRL_VANISH_DISTANCE := 7.0
 const GIRL_LIFETIME := 45.0                  # she's gone after this long if you never come close
 const GIRL_DRESS_COLOR := Color(0.9, 0.75, 0.3)   # the same yellow as in the car
+const GIRL_LAUGH_DISTANCE := 25.0            # she laughs when you come this close
+const GIRL_LAUGH_DB := -4.0
 # The reception phone rings. Nobody else hears it.
 const PHONE_MIN_METER := 45.0
 const PHONE_FIRST_DELAY := 60.0

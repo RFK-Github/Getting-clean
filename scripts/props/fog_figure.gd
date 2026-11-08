@@ -1,7 +1,8 @@
 extends Node3D
 ## A still figure that faces the player and flickers away when he comes close. One-shot.
 ## child = false: a tall dark figure in a coat (the street, the fog).
-## child = true:  a small girl in a yellow dress - the daughter. A music box plays as she goes.
+## child = true:  a small girl in a yellow dress - the daughter. She laughs when you come within
+##                 earshot; a music box plays as she goes.
 
 const Psx := preload("res://scripts/psx.gd")
 const Tex := preload("res://scripts/textures.gd")
@@ -13,6 +14,8 @@ var lifetime := -1.0          # > 0: she's gone after this many seconds even if 
 
 var _body: Node3D
 var _sound: AudioStreamPlayer3D
+var _laugh: AudioStreamPlayer3D
+var _laughed := false
 var _vanish_time := -1.0
 var _age := 0.0
 
@@ -36,6 +39,14 @@ func _ready() -> void:
 		_sound.unit_size = 20.0
 	_sound.position.y = 1.0
 	add_child(_sound)
+	if child:
+		# The same laughter as the daughter in the car.
+		_laugh = AudioStreamPlayer3D.new()
+		_laugh.stream = Audio.child_laugh()
+		_laugh.volume_db = Config.GIRL_LAUGH_DB
+		_laugh.unit_size = 8.0
+		_laugh.position.y = 1.0
+		add_child(_laugh)
 
 
 func _process(delta: float) -> void:
@@ -48,6 +59,9 @@ func _process(delta: float) -> void:
 		to.y = 0.0
 		if to.length() > 0.1:
 			rotation.y = atan2(-to.x, -to.z)  # front (-Z) faces the player
+		if child and not _laughed and to.length() < Config.GIRL_LAUGH_DISTANCE:
+			_laughed = true
+			_laugh.play()
 		if to.length() < vanish_distance or (lifetime > 0.0 and _age > lifetime):
 			_vanish_time = 0.0
 			if to.length() < vanish_distance:
