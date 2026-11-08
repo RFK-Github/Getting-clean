@@ -1296,7 +1296,7 @@ func _schedule_board_text() -> String:
 
 
 func _schedule_text() -> String:
-	return "\n".join(_schedule_lines()) + "\n\nActivities are once a day. Not allowed under the influence."
+	return "\n".join(_schedule_lines()) + "\n\nActivities are once a day."
 
 
 ## The patient chart: the only place Recovery is shown - as a hand-drawn scale and a word, never a number.

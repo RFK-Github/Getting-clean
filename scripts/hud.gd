@@ -39,6 +39,8 @@ func _ready() -> void:
 	_fill = _rect(bar_bg, Color.WHITE, Vector2.ZERO, Vector2(1, 1), Vector2(0, 8))
 	var tick_x := 1 + round(BAR_W * Config.HALLUCINATION_THRESHOLD / Config.METER_MAX)
 	_rect(bar_bg, Color(0.5, 0.5, 0.4), Vector2.ZERO, Vector2(tick_x, 0), Vector2(1, 10))
+	var ep_x := 1 + round(BAR_W * Config.EPISODE_THRESHOLD / Config.METER_MAX)   # where an episode hits
+	_rect(bar_bg, Color(0.75, 0.6, 0.35), Vector2.ZERO, Vector2(ep_x, 0), Vector2(2, 10))
 
 	# Stamina, bottom centre
 	_stamina_root = _rect(root, Color(0.04, 0.05, 0.03, 0.8), Vector2(0.5, 1), Vector2(-STAMINA_W / 2 - 1, -18), Vector2(STAMINA_W + 2, 6))
@@ -63,7 +65,8 @@ func _ready() -> void:
 	_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 	_help = _label(root, "WASD move   Shift sprint   F flashlight   E interact   I belongings   ESC menu",
-		Vector2(0, 0), Vector2(16, 12), Vector2(500, 20))
+		Vector2(0.5, 1), Vector2(-260, -44), Vector2(520, 20))
+	_help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_help.add_theme_font_size_override("font_size", Config.UI_FONT_SIZE_SMALL)
 
 	Withdrawal.message_posted.connect(_on_message)

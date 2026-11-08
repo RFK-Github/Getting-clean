@@ -31,9 +31,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if phase == "":
 		_cooldown -= delta
-		if _cooldown <= 0.0 and Withdrawal.state == "" and not Withdrawal.is_influenced() \
-				and Withdrawal.meter >= Config.EPISODE_THRESHOLD \
-				and randf() < Config.EPISODE_CHANCE_PER_SEC * delta:
+		# Withdrawal hits as soon as the meter reaches the threshold. (Pills don't block it
+		# directly - they reset the meter, so it simply takes a while to come back.)
+		if _cooldown <= 0.0 and Withdrawal.state == "" and Withdrawal.meter >= Config.EPISODE_THRESHOLD:
 			start()
 	else:
 		_t += delta

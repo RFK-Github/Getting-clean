@@ -1,6 +1,7 @@
 extends Node
 ## Base for the activities (simple minigames). Once per in-game day each.
 ## Showing up always gives a little Recovery and lowers withdrawal; doing well gives more.
+## Activities are allowed under the influence too.
 ## If a withdrawal episode or a hallucination starts during the activity, it stops
 ## (showing up still counts) and the player gets control back.
 ## A subclass overrides setup(), tick(delta), cleanup() and calls finish(did_well).
@@ -28,8 +29,6 @@ var _done := false
 static func refusal(activity_id: String, host_name: String) -> String:
 	if not Recovery.can_talk(activity_id):
 		return "%s: \"That's enough for today. Come back tomorrow.\"" % host_name
-	if Withdrawal.is_influenced():
-		return "%s: \"Come back when you're clean.\"" % host_name
 	return ""
 
 

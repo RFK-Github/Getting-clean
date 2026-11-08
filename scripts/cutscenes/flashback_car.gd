@@ -100,7 +100,9 @@ func animate(delta: float) -> void:
 		target = 1.0
 	_look_back = move_toward(_look_back, target, delta * (5.0 if t >= 9.4 else 1.0))
 	var w := smoothstep(0.0, 1.0, _look_back)
-	look_blend(EYE, EYE + Vector3(0, -0.05, -1), Vector3(0.35, 1.18, 1.05), w)
+	# Turning round he leans toward the middle, so he can see her between the seats.
+	var eye := EYE.lerp(EYE + Vector3(0.24, 0.06, 0.1), w)
+	look_blend(eye, eye + Vector3(0, -0.05, -1), Vector3(0.0, 1.12, 1.05), w)
 
 	# She laughs: head bobs and arms flap.
 	if t > 3.0 and t < 9.4:
@@ -131,10 +133,10 @@ func _build_car() -> void:
 		pillar.rotation.x = deg_to_rad(-30)
 	for x in [-0.38, 0.38]:
 		box(Vector3(x, 0.4, 0.15), Vector3(0.5, 0.4, 0.5), interior, false)      # front seats
-		box(Vector3(x, 0.95, 0.42), Vector3(0.5, 0.75, 0.12), interior, false)
+		box(Vector3(x, 0.85, 0.42), Vector3(0.5, 0.55, 0.12), interior, false)   # low backs: she can be seen
 	box(Vector3(0, 0.4, 1.05), Vector3(1.4, 0.4, 0.5), interior, false)          # back bench
 	box(Vector3(0, 0.95, 1.32), Vector3(1.4, 0.75, 0.12), interior, false)
-	box(Vector3(0.35, 0.68, 1.02), Vector3(0.42, 0.15, 0.4), mat("plain", Color(0.7, 0.3, 0.4), 1.0, false), false)  # booster seat
+	box(Vector3(0.0, 0.68, 1.02), Vector3(0.42, 0.15, 0.4), mat("plain", Color(0.7, 0.3, 0.4), 1.0, false), false)  # booster seat
 
 	# Steering wheel and his hands on it
 	var wheel := TorusMesh.new()
@@ -159,7 +161,7 @@ func _build_car() -> void:
 	_wife.position = Vector3(0.38, 0.13, 0.15)
 	add_child(_wife)
 	_girl = figure(Color(0.95, 0.75, 0.3), Color(0.3, 0.4, 0.7), Color(0.88, 0.72, 0.6), Color(0.45, 0.3, 0.15), true, 0.6)
-	_girl.position = Vector3(0.35, 0.47, 1.05)
+	_girl.position = Vector3(0.0, 0.47, 1.05)   # middle of the back seat
 	add_child(_girl)
 
 

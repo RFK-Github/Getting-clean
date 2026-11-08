@@ -170,8 +170,7 @@ const INFLUENCE_NUMB := 0.7                  # how grey/blurred/muffled the worl
 const INFLUENCE_MUFFLE_HZ := 900.0           # low-pass cutoff on all sound at full influence
 
 # ---------- Withdrawal episode (headache, grab head, knees, flashback) ----------
-const EPISODE_THRESHOLD := 60.0              # meter level where episodes can start (each one costs a day)
-const EPISODE_CHANCE_PER_SEC := 0.1
+const EPISODE_THRESHOLD := 60.0              # an episode starts when the meter reaches this (each one costs a day)
 const EPISODE_FIRST_COOLDOWN := 20.0         # seconds after a level starts
 const EPISODE_COOLDOWN := 45.0               # seconds between episodes
 const EPISODE_BUILD_TIME := 2.5              # headache builds, you can still move
