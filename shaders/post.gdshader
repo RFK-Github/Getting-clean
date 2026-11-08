@@ -42,7 +42,7 @@ void fragment() {
 	uv.y += sin(uv.x * 23.0 + TIME * 3.0) * 0.003 * wobble;
 	vec3 c = texture(screen_tex, uv).rgb;
 
-	float blur = headache * (1.5 + pulse * 1.5) + numb * 1.2;
+	float blur = numb * 1.2;   // (withdrawal episodes no longer blur: just the ringing and a dark vignette)
 	if (blur > 0.01) {
 		c = mix(c, blur9(uv, SCREEN_PIXEL_SIZE * blur), clamp(blur, 0.0, 1.0));
 	}
@@ -60,7 +60,7 @@ void fragment() {
 	float d = length(SCREEN_UV - 0.5);
 	float vig = smoothstep(0.35, 0.8, d) * vignette * (1.0 + hallucination * 0.5 + numb * 0.4);
 	c *= 1.0 - vig;
-	float ache = smoothstep(0.15, 0.75, d) * headache * (0.4 + 0.6 * pulse);
+	float ache = smoothstep(0.2, 0.8, d) * headache * 0.6;   // steady, no pulsing
 	c = mix(c, c * vec3(0.45, 0.12, 0.1), clamp(ache, 0.0, 0.9));
 
 	c += bayer4(FRAGCOORD.xy) * dither_strength / color_depth;

@@ -98,3 +98,5 @@ Each gives Recovery and lowers withdrawal. Showing up always gives a little; doi
 - Withdrawal stands still during activities (basketball, football, swimming), group therapy and conversations.
 - When withdrawal symptoms start (from 50), a ringing in the ears fades in and grows louder as it gets worse.
 - "In your system" meter (on screen above withdrawal): each pill fills it, and it slowly drains over time (one pill takes about 6 minutes). The fuller it is, the faster withdrawal rises (up to 3x). It replaces the old hidden addiction value, which never went down.
+- Jump (Space) with Quake-style air strafing and bunny hopping.
+- Withdrawal is calmer on screen: no glitching (no wobble or colour split from withdrawal, no blur), no heartbeat sound - only the high-pitched ringing in the ears and a steady dark edge during an episode. Much less camera and head shake. (Hallucinations - the monster - keep their own effects.)

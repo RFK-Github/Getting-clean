@@ -127,9 +127,7 @@ func _update_effects(delta: float) -> void:
 	if active or panicking:
 		target = 1.0
 	else:
-		target = clampf(inverse_lerp(Config.SYMPTOM_START, Config.METER_MAX, Withdrawal.meter), 0.0, 1.0) * 0.25
-		if Withdrawal.is_influenced():
-			target = 0.0
+		target = 0.0   # withdrawal itself no longer glitches the screen - only ringing ears
 	_intensity = move_toward(_intensity, target, delta * 1.5)
 
 	player.set_shake("hallucination", Config.SHAKE_STRENGTH * _intensity if (active or panicking) else 0.0)

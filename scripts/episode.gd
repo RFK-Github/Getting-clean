@@ -56,7 +56,6 @@ func start() -> void:
 	Withdrawal.state = "episode"
 	Withdrawal.episode_started.emit()
 	_ringing.play()
-	_heart.play()
 	_enter("build")
 
 
@@ -118,10 +117,8 @@ func _apply(delta: float) -> void:
 	post_material.set_shader_parameter("headache", _headache)
 	if _headache > 0.001:
 		_ringing.volume_db = Config.TINNITUS_DB + linear_to_db(_headache)
-		_heart.volume_db = Config.HEARTBEAT_DB + linear_to_db(_headache)
-	elif _ringing.playing:
+	elif phase == "" and _ringing.playing:   # only once the episode is over
 		_ringing.stop()
-		_heart.stop()
 
 
 func _sound(stream: AudioStream, bus: String) -> AudioStreamPlayer:
