@@ -170,27 +170,45 @@ func grave_set(origin: Vector3) -> Node3D:
 		box(p + Vector3(0, 2.5, 0), Vector3(0.3, 5.0, 0.3), bark, false, root)
 		var branch := box(p + Vector3(0.6, 4.0, 0), Vector3(0.12, 1.8, 0.12), bark, false, root)
 		branch.rotation.z = -0.7
-	# Her stone
-	var front := Vector3(0, 0.6, -1.6)
-	box(front + Vector3(0, -0.1, 0), Vector3(0.9, 1.0, 0.18), stone, false, root)
-	box(Vector3(0, 0.06, -1.6), Vector3(1.1, 0.12, 0.45), stone, false, root)
-	var ink := Color(0.22, 0.22, 0.24)
-	sign_text("BELOVED DAUGHTER", front + Vector3(0, 0.22, 0.095), 0, 30, ink, root)
-	sign_text("Forever seven years old", front + Vector3(0, 0.06, 0.095), 0, 18, ink, root)
-	sign_text("We will always hold your hand", front + Vector3(0, -0.1, 0.095), 0, 14, ink, root)
-	# The teddy bear and flowers at the foot of the stone
+	# Her stone: a dark granite headstone with an arched top on a plinth set into the
+	# ground, and a kerbed grave plot with gravel in front of it.
+	var granite := mat("concrete", Color(0.42, 0.43, 0.46), 1.0)
+	var plinth := mat("concrete", Color(0.62, 0.62, 0.6), 1.0)
+	box(Vector3(0, 0.08, -1.72), Vector3(1.2, 0.2, 0.42), plinth, false, root)          # plinth, sunk 2 cm
+	box(Vector3(0, 0.6, -1.74), Vector3(0.9, 0.84, 0.14), granite, false, root)         # the upright slab
+	var arch := cylinder(Vector3(0, 1.02, -1.74), 0.45, 0.14, granite, root)            # arched top
+	arch.rotation.x = PI / 2
+	arch.scale = Vector3(1, 1, 0.45)
+	(arch.mesh as CylinderMesh).radial_segments = 16
+	# Kerbs and gravel: the plot in front of the stone
+	box(Vector3(0, 0.03, -0.92), Vector3(0.9, 0.06, 1.2), mat("concrete", Color(0.55, 0.5, 0.45), 0.25), false, root)
+	for sx in [-0.5, 0.5]:
+		box(Vector3(sx, 0.06, -0.97), Vector3(0.1, 0.12, 1.3), plinth, false, root)
+	box(Vector3(0, 0.06, -0.27), Vector3(1.1, 0.12, 0.1), plinth, false, root)
+	# Engraved letters, small enough to sit inside the stone's face
+	var face_z := -1.74 + 0.082
+	var ink := Color(0.86, 0.84, 0.78)
+	var born: int = Config.YEAR_HE_THINKS - 7
+	sign_text("BELOVED DAUGHTER", Vector3(0, 1.0, face_z), 0, 12, ink, root)
+	sign_text("%d - %d" % [born, Config.YEAR_HE_THINKS], Vector3(0, 0.87, face_z), 0, 10, ink, root)
+	sign_text("Forever seven years old", Vector3(0, 0.7, face_z), 0, 9, ink, root)
+	sign_text("We will always\nhold your hand", Vector3(0, 0.52, face_z), 0, 8, ink, root)
+	# The teddy bear sitting against the plinth, and flowers lying on the gravel
 	var fur := mat("fabric", Color(1.4, 1.0, 0.65), 3.0, false)
 	var bear := Node3D.new()
-	bear.position = Vector3(-0.25, 0.12, -1.3)
+	bear.position = Vector3(-0.25, 0.06, -1.38)
 	bear.rotation.y = 0.3
 	root.add_child(bear)
 	box(Vector3(0, 0.1, 0), Vector3(0.17, 0.2, 0.13), fur, false, bear)
 	box(Vector3(0, 0.26, 0), Vector3(0.14, 0.13, 0.12), fur, false, bear)
 	for sx in [-0.06, 0.06]:
 		box(Vector3(sx, 0.34, 0), Vector3(0.04, 0.04, 0.03), fur, false, bear)
+	var stems := mat("plain", Color(0.25, 0.45, 0.2), 1.0, false)
 	for i in 5:
 		var c: Color = [Color(0.85, 0.85, 0.8), Color(0.9, 0.6, 0.65), Color(0.9, 0.85, 0.4)][i % 3]
-		box(Vector3(0.12 + i * 0.06, 0.16, -1.32 + (i % 2) * 0.05), Vector3(0.05, 0.05, 0.05), mat("plain", c, 1.0, false), false, root)
+		var stem := box(Vector3(0.18 + i * 0.05, 0.075, -1.2 + (i % 2) * 0.04), Vector3(0.012, 0.012, 0.3), stems, false, root)
+		stem.rotation.y = 0.25
+		box(Vector3(0.14 + i * 0.05, 0.09, -1.36 + (i % 2) * 0.04), Vector3(0.05, 0.04, 0.05), mat("plain", c, 1.0, false), false, root)
 	return root
 
 
