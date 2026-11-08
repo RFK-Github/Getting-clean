@@ -26,6 +26,7 @@ var _regen_wait := 0.0
 var _pitch := 0.0
 var _bob := 0.0
 var _target: Object = null
+var _shown_prompt := ""
 
 
 func _ready() -> void:
@@ -169,6 +170,8 @@ func _update_target() -> void:
 	var new_target: Object = null
 	if not hit.is_empty() and hit.collider != null and hit.collider.has_method("interact"):
 		new_target = hit.collider
-	if new_target != _target:
-		_target = new_target
-		prompt_changed.emit("[E] " + str(_target.get("prompt")) if _target != null else "")
+	_target = new_target
+	var text := "[E] " + str(_target.get("prompt")) if _target != null else ""
+	if text != _shown_prompt:   # also when the prompt itself changes (e.g. the phone starts ringing)
+		_shown_prompt = text
+		prompt_changed.emit(text)

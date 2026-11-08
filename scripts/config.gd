@@ -282,6 +282,26 @@ const CUTSCENE_SCREAM_DB := -2.0             # loud bus
 const CUTSCENE_RAIN_DB := -14.0
 const CUTSCENE_TRAIN_DB := -2.0              # loud bus
 
+# ---------- Spooky encounters ----------
+# A small girl (the daughter) appears at the end of a corridor and is gone when you come close.
+const GIRL_MIN_METER := 35.0                 # withdrawal needed before she appears
+const GIRL_FIRST_DELAY := 25.0               # seconds after waking
+const GIRL_INTERVAL := 70.0                  # seconds between appearances
+const GIRL_VANISH_DISTANCE := 7.0
+const GIRL_LIFETIME := 45.0                  # she's gone after this long if you never come close
+const GIRL_DRESS_COLOR := Color(0.9, 0.75, 0.3)   # the same yellow as in the car
+# The reception phone rings. Nobody else hears it.
+const PHONE_MIN_METER := 45.0
+const PHONE_FIRST_DELAY := 60.0
+const PHONE_INTERVAL := 150.0
+const PHONE_RING_TIME := 15.0
+const PHONE_DB := -6.0
+# The TV in the common room turns itself on (once per day, when you walk in).
+const TV_SELF_MIN_METER := 45.0
+# Football: on this kick a car comes out of the back of the goal at you, then vanishes.
+const FOOTBALL_CAR_KICK := 3
+const FOOTBALL_CAR_SPEED := 18.0
+
 # ---------- Time-passing hints ----------
 const YEAR_HE_THINKS := 2019                 # the year he believes it is (he thinks it's been weeks)
 const YEAR_NOW := 2024                       # the real year (calendars, the last letter)

@@ -61,10 +61,24 @@ var _tv_sound: AudioStreamPlayer3D
 var _tv_light: OmniLight3D
 var _tv_news: Label3D
 var _said := {}       # one-time remarks already made
+var _girl: Node3D
+var _girl_timer: float = Config.GIRL_FIRST_DELAY
+var _phone_timer: float = Config.PHONE_FIRST_DELAY
+var _phone_ring_left := 0.0
+var _phone_sound: AudioStreamPlayer3D
+var _tv_self_done := false
 
 const Basketball := preload("res://scripts/activities/basketball.gd")
 const Football := preload("res://scripts/activities/football.gd")
 const Swimming := preload("res://scripts/activities/swimming.gd")
+const FogFigure := preload("res://scripts/props/fog_figure.gd")
+
+## Where the girl can appear (always somewhere you're not looking).
+const GIRL_SPOTS := [
+	Vector3(-30.8, 0, -30.0), Vector3(9.5, 3.25, -38.8), Vector3(38.5, 0, -44.8), Vector3(0, 0, -74.0),
+	Vector3(-41.5, 0, -60.0), Vector3(16.8, 0, -45.2), Vector3(18.8, 0, -21.0), Vector3(4, 3.25, -21.4),
+	Vector3(-12.0, 0, -7.6), Vector3(-1.2, 0, -50.5),
+]
 const ACTIVITY_IDS := {"Basketball": "basketball", "Football": "football", "Swimming": "swimming"}
 
 const StoryItems := preload("res://scripts/story_items.gd")
@@ -137,6 +151,7 @@ func build() -> void:
 	_activity_spots()
 	_calendars()
 	_interactions()
+	_encounters()
 
 	var hum := AudioStreamPlayer.new()
 	hum.stream = Audio.hum()
@@ -163,6 +178,7 @@ func _process(delta: float) -> void:
 
 	_push_window = maxf(0.0, _push_window - delta)
 	_tv_flicker()
+	_update_encounters(delta)
 	_board_refresh -= delta
 	if _board_refresh <= 0.0 and _board_label:
 		_board_refresh = 1.0
@@ -460,6 +476,7 @@ func _toggle_spot(pos: Vector3, size: Vector3, prompt_fn: Callable, action: Call
 	p.shape_size = size
 	p.position = pos
 	p.prompt = prompt_fn.call()
+	p.prompt_source = prompt_fn
 	p.action = func():
 		action.call()
 		p.prompt = prompt_fn.call()
@@ -517,6 +534,83 @@ func _filing_cabinet(base: Vector3) -> void:
 			create_tween().tween_property(drawer, "position:x", base.x - 0.4 if opening else base.x, 0.4)
 			if opening:
 				_remark("files", "Patient files. Yours is the thickest one in the drawer. Some of the pages are yellow with age."))
+
+
+## The reception phone (rings for him only).
+func _encounters() -> void:
+	var phone_pos := Vector3(4.0, 1.145, -7.65)
+	box(phone_pos + Vector3(0, 0.04, 0), Vector3(0.22, 0.08, 0.16), m_dark, false)
+	box(phone_pos + Vector3(0, 0.1, 0), Vector3(0.24, 0.04, 0.05), m_dark, false)   # receiver
+	_phone_sound = AudioStreamPlayer3D.new()
+	_phone_sound.stream = Audio.phone_ring()
+	_phone_sound.volume_db = Config.PHONE_DB
+	_phone_sound.unit_size = 8.0
+	_phone_sound.position = phone_pos
+	add_child(_phone_sound)
+	_toggle_spot(phone_pos + Vector3(0, -0.15, 0.25), Vector3(0.5, 0.4, 0.5),
+		func(): return "Answer the phone" if _phone_ring_left > 0.0 else "Phone",
+		func():
+			if _phone_ring_left <= 0.0:
+				Withdrawal.post_message("The reception phone. Silent.")
+				return
+			_phone_ring_left = 0.0
+			_phone_sound.stop()
+			Withdrawal.post_message("Static. Then, very quietly: \"Daddy?\" The line goes dead.")
+			get_tree().create_timer(4.5, false).timeout.connect(func():
+				Withdrawal.post_message("Nurse Kim: \"Who are you talking to? That line hasn't worked in years.\"")))
+
+
+## The girl in the yellow dress, the phone that rings, the TV that turns itself on.
+func _update_encounters(delta: float) -> void:
+	var player := get_player()
+	if player == null:
+		return
+	var calm := Withdrawal.state == "" and not Withdrawal.is_influenced() and _activity == null
+
+	_girl_timer -= delta
+	if (_girl == null or not is_instance_valid(_girl)) and _girl_timer <= 0.0 and calm \
+			and Withdrawal.meter >= Config.GIRL_MIN_METER:
+		_girl_timer = Config.GIRL_INTERVAL
+		_spawn_girl(player)
+
+	if _phone_ring_left > 0.0:
+		_phone_ring_left -= delta
+		if _phone_ring_left <= 0.0:
+			_phone_sound.stop()
+	else:
+		_phone_timer -= delta
+		if _phone_timer <= 0.0 and calm and Withdrawal.meter >= Config.PHONE_MIN_METER:
+			_phone_timer = Config.PHONE_INTERVAL
+			_phone_ring_left = Config.PHONE_RING_TIME
+			_phone_sound.play()
+
+	# Walking into the common room: the TV is on. Nobody turned it on.
+	var p := player.global_position
+	if not _tv_self_done and not _tv_on and Withdrawal.meter >= Config.TV_SELF_MIN_METER \
+			and p.y < 1.0 and p.x > 2.5 and p.x < 17.5 and p.z < -32.5 and p.z > -45.5:
+		_tv_self_done = true
+		set_tv(true)
+		Withdrawal.post_message("The TV is on. You didn't turn it on.")
+
+
+## She appears somewhere on his floor, far away and behind him.
+func _spawn_girl(player: Node3D) -> void:
+	var forward := -player.global_transform.basis.z
+	var spots := GIRL_SPOTS.duplicate()
+	spots.shuffle()
+	for s in spots:
+		var to: Vector3 = s - player.global_position
+		if absf(to.y) > 1.5 or Vector2(to.x, to.z).length() < 12.0:
+			continue
+		if forward.dot(to.normalized()) > 0.2:
+			continue   # he'd see her pop in
+		_girl = FogFigure.new()
+		_girl.child = true
+		_girl.vanish_distance = Config.GIRL_VANISH_DISTANCE
+		_girl.lifetime = Config.GIRL_LIFETIME
+		_girl.position = s
+		add_child(_girl)
+		return
 
 
 ## Calendars around the center that don't agree with each other - or with him.

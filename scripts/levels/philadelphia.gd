@@ -104,6 +104,13 @@ func build() -> void:
 	var figure := FogFigure.new()
 	figure.position = Vector3(0.6, 0, -82)
 	add_child(figure)
+	# A small girl in a yellow dress, twice: on the first crossing, and across from the center.
+	for spot in [Vector3(-2.5, 0, -47.0), Vector3(-8.0, 0.12, -138.0)]:
+		var girl := FogFigure.new()
+		girl.child = true
+		girl.vanish_distance = Config.GIRL_VANISH_DISTANCE + 4.0
+		girl.position = spot
+		add_child(girl)
 
 	_spawn_bus()
 	spawn = Transform3D(Basis.IDENTITY, Vector3(7.6, 0.05, 2.2))  # under the bus shelter, facing -Z

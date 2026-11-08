@@ -310,6 +310,19 @@ static func music_box() -> AudioStreamWAV:
 	return w
 
 
+## An old phone ringing: two tones, ring-ring, pause (loop, 4 s).
+static func phone_ring() -> AudioStreamWAV:
+	var n := LOFI_RATE * 4
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	for i in n:
+		var t := float(i) / LOFI_RATE
+		var on := (t < 0.4) or (t > 0.6 and t < 1.0)
+		var bell := signf(sin(TAU * 20.0 * t)) * 0.5 + 0.5   # the bell's clatter
+		samples[i] = (sin(TAU * 440.0 * t) + sin(TAU * 480.0 * t)) * 0.25 * bell if on else 0.0
+	return _make(samples, LOFI_RATE)
+
+
 static func _make(samples: PackedFloat32Array, rate := RATE) -> AudioStreamWAV:
 	var data := PackedByteArray()
 	data.resize(samples.size() * 2)

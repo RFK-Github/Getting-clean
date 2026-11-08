@@ -18,6 +18,7 @@ var target_level := ""
 var title := ""
 var text_source: Callable   # optional: returns the text when read (e.g. the clipboard)
 var action: Callable        # for kind "action"
+var prompt_source: Callable # optional: returns the prompt live (e.g. "Answer the phone" while it rings)
 var shape_size := Vector3(0.4, 0.4, 0.4)
 
 var _flicker_t := 0.0
@@ -38,6 +39,8 @@ func _ready() -> void:
 
 ## Under the influence, real items and letters flicker in and out of sight (and fakes flicker too).
 func _process(delta: float) -> void:
+	if prompt_source.is_valid():
+		prompt = prompt_source.call()
 	if kind != "item" and kind != "letter" and kind != "fake":
 		return
 	_glint_t += delta * Config.ITEM_SPARKLE_SPEED
