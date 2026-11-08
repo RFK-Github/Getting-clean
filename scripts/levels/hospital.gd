@@ -45,6 +45,14 @@ var _flicker: Array[OmniLight3D] = []
 var _lobby_spawn := Transform3D.IDENTITY
 var _fakes: Array[Node3D] = []
 var _push_window := 0.0   # time left to press E again at the exit and push past the doctor
+var _activity: Node = null
+var _board_label: Label3D
+var _board_refresh := 0.0
+
+const Basketball := preload("res://scripts/activities/basketball.gd")
+const Football := preload("res://scripts/activities/football.gd")
+const Swimming := preload("res://scripts/activities/swimming.gd")
+const ACTIVITY_IDS := {"Basketball": "basketball", "Football": "football", "Swimming": "swimming"}
 
 ## The five personal items: where the real one is, and where fake copies appear under the influence.
 const ITEMS := [
@@ -123,6 +131,7 @@ func build() -> void:
 	_lawn()
 	_hidden_pills()
 	_items_and_letters()
+	_activity_spots()
 
 	var hum := AudioStreamPlayer.new()
 	hum.stream = Audio.hum()
@@ -142,6 +151,10 @@ func _process(delta: float) -> void:
 			l.light_energy = lerpf(l.light_energy, Config.LAMP_ENERGY, 0.2)
 
 	_push_window = maxf(0.0, _push_window - delta)
+	_board_refresh -= delta
+	if _board_refresh <= 0.0 and _board_label:
+		_board_refresh = 1.0
+		_board_label.text = _schedule_board_text()
 
 	# Under the influence, fake copies of the missing items appear. They go when it wears off.
 	_fakes = _fakes.filter(func(n): return is_instance_valid(n))
@@ -268,6 +281,40 @@ func _on_exit() -> void:
 	_push_window = Config.FORCE_EXIT_WINDOW
 
 
+## Where the activities start: the free-throw line, the penalty spot, the pool edge.
+func _activity_spots() -> void:
+	_activity_spot(Vector3(0, 0, -69.2), "Shoot free throws", Basketball, "basketball", "Leon", "Played basketball in the courtyard.")
+	_activity_spot(Vector3(-31.5, 0, -68), "Take penalties", Football, "football", "Sam", "Took penalties on the lawn.")
+	_activity_spot(Vector3(28.5, 0, -18.7), "Swim laps", Swimming, "swimming", "Nurse Dale", "Swam laps in the pool.")
+
+
+func _activity_spot(pos: Vector3, prompt: String, script: GDScript, id: String, host: String, note: String) -> void:
+	var p := Pickup.new()
+	p.kind = "action"
+	p.prompt = prompt
+	p.shape_size = Vector3(1.2, 1.6, 1.2)
+	p.position = pos
+	p.action = func(): _start_activity(script, id, host, note)
+	add_child(p)
+
+
+func _start_activity(script: GDScript, id: String, host: String, note: String) -> void:
+	if _activity != null or Withdrawal.state != "":
+		return
+	var why: String = script.refusal(id, host)
+	if why != "":
+		Withdrawal.post_message(why)
+		return
+	var a: Node = script.new()
+	a.id = id
+	a.host = host
+	a.note = note
+	add_child(a)
+	_activity = a
+	a.ended.connect(func(): _activity = null)
+	a.begin(get_player(), self)
+
+
 func _make_materials() -> void:
 	m_floor = mat("linoleum", Color.WHITE, 0.5)
 	m_wall = mat("white_wall", Color.WHITE, 0.5)
@@ -341,7 +388,7 @@ func _main_hall() -> void:
 
 	# Daily schedule board
 	box(Vector3(1.77, 1.55, -24.6), Vector3(0.05, 1.1, 1.5), mat("cork", Color.WHITE, 1.0, false))
-	sign_text(_schedule_board_text(), Vector3(1.74, 1.55, -24.6), -90, 12, Color(0.12, 0.12, 0.14))
+	_board_label = sign_text(_schedule_board_text(), Vector3(1.74, 1.55, -24.6), -90, 12, Color(0.12, 0.12, 0.14))
 	var board := Pickup.new()
 	board.kind = "read"
 	board.prompt = "Daily schedule"
@@ -565,7 +612,10 @@ func _pool() -> void:
 	# Lifeguard chair
 	box(Vector3(38.2, 0.9, -30), Vector3(0.7, 1.8, 0.7), m_metal)
 	box(Vector3(38.2, 2.0, -30), Vector3(0.7, 0.1, 0.7), m_white, false)
-	npc("nurse", Vector3(38, 0, -26.5), -PI * 0.5, ["The pool is only open in the afternoon. Check the board.", "Nobody swims without me watching."], "Nurse Dale")
+	npc("nurse", Vector3(38, 0, -26.5), -PI * 0.5, ["Want to swim? Start at the edge there. I'll be watching.", "Nobody swims without me watching."], "Nurse Dale")
+	bench(Vector3(22, 0, -17.2), 0.0)
+	var ruth := npc("patient", Vector3(22, 0, -17.2), 0.0, ["I come to watch. I can't swim. Never learned.", "You looked good out there."], "Ruth")
+	ruth.pose = "sit"
 
 
 func _courtyard() -> void:
@@ -598,7 +648,7 @@ func _courtyard() -> void:
 	bench(Vector3(11.4, 0, -68), -PI * 0.5)
 	plant(Vector3(-11.3, 0, -53))
 	plant(Vector3(11.3, 0, -53))
-	npc("patient", Vector3(2.5, 0, -69), PI * 0.8, ["Bet you can't make a free throw with those shaky hands.", "Shoot around with me sometime."], "")
+	npc("patient", Vector3(2.5, 0, -69), PI * 0.8, ["Bet you can't make a free throw with those shaky hands.", "Shoot around with me sometime."], "Leon")
 
 
 func _lawn() -> void:
@@ -622,7 +672,8 @@ func _lawn() -> void:
 
 	for p in [Vector3(-15, 0, -81), Vector3(-40, 0, -55), Vector3(-26, 0, -82)]:
 		tree(p)
-	npc("patient", Vector3(gx + 0.6, 0, -68), -PI * 0.5, ["Best keeper in this place. Only keeper, but still.", "Come take a penalty when the lawn is open."], "")
+	var keeper := npc("patient", Vector3(gx + 0.6, 0, -68), -PI * 0.5, ["Best keeper in this place. Only keeper, but still.", "Come take a penalty. The spot's right there."], "Sam")
+	keeper.name = "Goalie"
 
 
 ## Drugs hidden around the center. Each id is taken only once.
@@ -640,9 +691,11 @@ func _schedule_lines() -> Array[String]:
 	var out: Array[String] = []
 	for s in Config.SCHEDULE:
 		var activity: String = s[1]
-		var open := activity in ["Basketball", "Football", "Swimming"]
+		var status := ""
+		if ACTIVITY_IDS.has(activity):
+			status = "   DONE TODAY" if not Recovery.can_talk(ACTIVITY_IDS[activity]) else "   OPEN"
 		var where: String = ("  -  " + s[2]) if s[2] != "" else ""
-		out.append("%02d:00   %s%s%s" % [s[0], activity, where, "   OPEN" if open else ""])
+		out.append("%02d:00   %s%s%s" % [s[0], activity, where, status])
 	return out
 
 

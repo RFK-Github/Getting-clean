@@ -225,6 +225,37 @@ const LETTER_WITHDRAWAL_RELIEF := 10.0
 const ITEM_FLICKER := 0.6                    # under the influence: how often real items vanish (0-1)
 const FAKE_COPIES_PER_ITEM := 1              # under the influence: decoys that turn to nothing
 
+# ---------- Activities (once per in-game day each) ----------
+const ACTIVITY_RELIEF := 10.0                # withdrawal drops this much just for showing up
+const ACTIVITY_RELIEF_GOOD := 8.0            # ...and this much more for doing well
+# Basketball: free throws
+const BASKETBALL_SHOTS := 5
+const BASKETBALL_GOOD := 3                   # makes needed to "do well"
+const SHOT_CHARGE_TIME := 1.1                # seconds for the power bar to fill (it bounces back)
+const SHOT_SWEET_MIN := 0.62                 # power window that goes in
+const SHOT_SWEET_MAX := 0.8
+const AIM_TOLERANCE := 0.18                  # how far off-centre the aim can be and still go in
+const AIM_DRIFT_BASE := 0.15                 # aim wobble with no withdrawal
+const AIM_DRIFT_WITHDRAWAL := 0.6            # extra wobble at full withdrawal
+const AIM_MOUSE := 0.004                     # how much the mouse steadies the aim
+# Football: penalties
+const PENALTIES := 5
+const PENALTY_GOOD := 3
+const PENALTY_CHARGE_TIME := 1.0
+const PENALTY_POWER_MIN := 0.3               # softer than this: the keeper always saves
+const PENALTY_POWER_MAX := 0.9               # harder than this: over the bar
+const KEEPER_REACH := 1.4                    # metres either side of where the keeper dives
+const PENALTY_AIM_MOUSE := 0.006
+# Swimming: alternate left/right in rhythm
+const SWIM_DISTANCE := 38.4                  # two lengths of the pool
+const SWIM_TIME_LIMIT := 70.0
+const SWIM_BEAT := 0.65                      # seconds between strokes
+const SWIM_WINDOW := 0.22                    # how close to the beat a stroke must be
+const SWIM_STROKE_PUSH := 0.9                # speed gained per good stroke (m/s)
+const SWIM_DRAG := 1.2
+const SWIM_SINK_PER_MISS := 0.3
+const SWIM_GOOD_ACCURACY := 0.7              # share of good strokes to "do well"
+
 # ---------- Cutscenes / flashbacks ----------
 # (Each scene's own timeline - when lines appear, camera moves - lives in its script in scripts/cutscenes/.)
 const CUTSCENE_FADE_TIME := 1.0              # fade in/out of a cutscene

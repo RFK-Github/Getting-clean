@@ -23,6 +23,7 @@ Godot 4 project: first-person psychological horror game about addiction, PS1 sty
 - `scripts/npc.gd`: non-hostile NPCs (doctor/nurse/patient/therapist), waypoints or stand/sit/lie
 - `Game.show_text(title, body)`: reading panel (clipboard, schedule board, letters)
 - `scripts/dialogues.gd`: staff conversations + group therapy (choice trees, once per day via `Recovery.can_talk`); NPCs with `dialogue_id` start them; UI is `Game.start_dialogue()`
+- `scripts/activities/`: basketball, football, swimming minigames extending `activity_base.gd` (`setup()`, `tick()`, `finish(did_well)`); started from spots in `hospital.gd` `_activity_spots()`, once per day
 - `scripts/episode.gd` (withdrawal episode, `flashback_point` signal for step 6) and `scripts/hallucination.gd`
   (monster). Only one runs at a time via `Withdrawal.state`; neither while `Withdrawal.is_influenced()`.
   Signals for step 5 live on Withdrawal (`episode_survived`, `pill_taken`, ...) and `hallucination.caught_player`.
