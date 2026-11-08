@@ -20,6 +20,7 @@ Config="*res://scripts/config.gd"
 Settings="*res://scripts/settings.gd"
 Withdrawal="*res://scripts/withdrawal.gd"
 Game="*res://scripts/game.gd"
+Recovery="*res://scripts/recovery.gd"
 
 [display]
 

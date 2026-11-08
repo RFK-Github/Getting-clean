@@ -14,6 +14,7 @@ var _stamina_root: Control
 var _stamina_fill: ColorRect
 var _stamina_lost: ColorRect
 var _items: Label
+var _days: Label
 var _prompt: Label
 var _msg: Label
 var _help: Label
@@ -45,8 +46,11 @@ func _ready() -> void:
 	_stamina_fill = _rect(_stamina_root, Color(0.75, 0.78, 0.6), Vector2.ZERO, Vector2(1, 1), Vector2(0, 4))
 
 	# Memories, top right
-	_items = _label(root, "", Vector2(1, 0), Vector2(-216, 12), Vector2(200, 20))
+	_items = _label(root, "", Vector2(1, 0), Vector2(-316, 12), Vector2(300, 20))
 	_items.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_days = _label(root, "", Vector2(1, 0), Vector2(-316, 32), Vector2(300, 20))
+	_days.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_days.add_theme_font_size_override("font_size", Config.UI_FONT_SIZE_SMALL)
 
 	# Crosshair dot
 	_rect(root, Color(0.8, 0.85, 0.65, 0.5), Vector2(0.5, 0.5), Vector2(-1, -1), Vector2(3, 3))
@@ -97,6 +101,9 @@ func _process(delta: float) -> void:
 			_stamina_hide = maxf(0.0, _stamina_hide - delta)
 		_stamina_root.modulate.a = clampf(_stamina_hide / 0.5, 0.0, 1.0)
 
+	_days.text = Recovery.days_text().to_upper()
+	_update_items()
+
 	_msg_time = maxf(0.0, _msg_time - delta)
 	_msg.modulate.a = clampf(_msg_time, 0.0, 1.0)
 	_help_time = maxf(0.0, _help_time - delta)
@@ -109,7 +116,8 @@ func _on_message(text: String) -> void:
 
 
 func _update_items() -> void:
-	_items.text = "MEMORIES %d/%d" % [Withdrawal.found_items.size(), Config.ITEMS_TOTAL]
+	_items.text = "MEMORIES %d/%d   LETTERS %d/%d" % [Withdrawal.found_items.size(), Config.ITEMS_TOTAL,
+		Recovery.letters_read.size(), Config.LETTERS_TOTAL]
 
 
 ## Places a control at an anchor point (0..1 of the screen) plus a pixel offset.

@@ -53,7 +53,6 @@ func _ready() -> void:
 	if s.get("hallucinations", false):
 		var hallucination := Hallucination.new()
 		hallucination.player = player
-		hallucination.bed_spawn = level.bed_spawn if level.bed_spawn != Transform3D.IDENTITY else level.spawn
 		hallucination.post_material = post
 		add_child(hallucination)
 

@@ -5,12 +5,15 @@ extends Node
 
 var current_level: String = Config.START_LEVEL
 var previous_level := ""
+var wake_message := ""   # shown when the hospital loads after a day passes
 
 var _fade: ColorRect
 var _busy := false
 var _panel: Control
 var _panel_title: Label
 var _panel_body: Label
+var _ending: Control
+var _ending_text: Label
 
 
 func _ready() -> void:
@@ -19,6 +22,7 @@ func _ready() -> void:
 	layer.layer = 10
 	add_child(layer)
 	_build_panel(layer)
+	_build_ending(layer)
 	_fade = ColorRect.new()
 	_fade.color = Color(0, 0, 0, 0)
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -45,6 +49,81 @@ func change_level(level_id: String) -> void:
 	_busy = false
 
 
+# ------------------------------------------------------------------ Endings
+# Placeholder text screens. Build step 10 replaces them with final cutscenes A and B.
+
+## Final cutscene B: the countdown ran out.
+func game_over() -> void:
+	_show_ending("She came.\n\nYou weren't ready.\n\nShe left.")
+
+
+## Final cutscene A: Recovery reached 100 and the doctor lets you go.
+func good_ending() -> void:
+	_show_ending("\"You're ready.\"\n\nYou walk out into the daylight.\nShe is waiting for you.")
+
+
+func is_ending() -> bool:
+	return _ending.visible
+
+
+func _show_ending(text: String) -> void:
+	if _busy:
+		return
+	_busy = true
+	var out := create_tween()
+	out.tween_property(_fade, "color:a", 1.0, Config.LEVEL_FADE_TIME * 2.0)
+	await out.finished
+	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_ending_text.text = text
+	_ending.visible = true
+	_fade.color.a = 0.0  # the fade layer sits on top of the ending screen
+	_busy = false
+
+
+## Start the whole game over from the first level.
+func restart() -> void:
+	_ending.visible = false
+	Withdrawal.reset()
+	Recovery.reset()
+	wake_message = ""
+	previous_level = ""
+	current_level = Config.START_LEVEL
+	get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	get_tree().reload_current_scene()
+	await get_tree().process_frame
+	var back := create_tween()
+	back.tween_property(_fade, "color:a", 0.0, Config.LEVEL_FADE_TIME)
+
+
+func _build_ending(layer: CanvasLayer) -> void:
+	_ending = ColorRect.new()
+	(_ending as ColorRect).color = Color.BLACK
+	_ending.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ending.visible = false
+	var th := Theme.new()
+	th.default_font_size = Config.UI_FONT_SIZE
+	_ending.theme = th
+	layer.add_child(_ending)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ending.add_child(center)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 40)
+	center.add_child(box)
+	_ending_text = Label.new()
+	_ending_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ending_text.add_theme_color_override("font_color", Color(0.85, 0.85, 0.82))
+	box.add_child(_ending_text)
+	var hint := Label.new()
+	hint.text = "[E] Start again"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_color_override("font_color", Color(0.45, 0.45, 0.45))
+	hint.add_theme_font_size_override("font_size", Config.UI_FONT_SIZE_SMALL)
+	box.add_child(hint)
+
+
 # ------------------------------------------------------------------ Reading panel
 
 func show_text(title: String, body: String) -> void:
@@ -64,6 +143,11 @@ func close_text() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _ending.visible:
+		if event.is_action_pressed("interact"):
+			restart()
+		get_viewport().set_input_as_handled()
+		return
 	if not _panel.visible:
 		return
 	if event.is_action_pressed("interact") or event.is_action_pressed("pause") \

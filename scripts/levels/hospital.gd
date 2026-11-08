@@ -43,10 +43,48 @@ var m_green: ShaderMaterial
 
 var _flicker: Array[OmniLight3D] = []
 var _lobby_spawn := Transform3D.IDENTITY
+var _fakes: Array[Node3D] = []
+var _push_window := 0.0   # time left to press E again at the exit and push past the doctor
+
+## The five personal items: where the real one is, and where fake copies appear under the influence.
+const ITEMS := [
+	{"id": "drawing", "prompt": "A child's drawing", "pos": Vector3(-6.28, 0.485, -18.62), "rot": 20.0,
+		"fakes": [Vector3(6.0, 0.775, -41.0), Vector3(-7.3, 0.485, -5.0)],
+		"message": "A child's drawing. A big figure and a small one, holding hands under a yellow sun. Your chest tightens. You don't know why."},
+	{"id": "photo", "prompt": "A photo", "pos": Vector3(7.5, 0.78, -14.7), "rot": -15.0,
+		"fakes": [Vector3(13.0, 1.15, -27.0), Vector3(-24.9, 0.63, -22.0)],
+		"message": "A creased photo. You, your wife, and a little girl on your shoulders, laughing. You look at the girl for a long time."},
+	{"id": "teddy", "prompt": "A teddy bear", "pos": Vector3(11.4, 0.48, -60.3), "rot": -90.0,
+		"fakes": [Vector3(-41.0, 0.0, -62.0), Vector3(-31.2, 0.0, -29.3)],
+		"message": "A worn teddy bear with one button eye. You've held it before. Smaller hands used to hold it too."},
+	{"id": "bracelet", "prompt": "A bracelet", "pos": Vector3(21.2, 0.0, -43.5), "rot": 0.0,
+		"fakes": [Vector3(-1.2, 0.0, -48.0), Vector3(4.2, 1.15, -7.6)],
+		"message": "Plastic beads on elastic. The letters spell D-A-D. It's far too small for your wrist."},
+	{"id": "ring", "prompt": "A ring", "pos": Vector3(-14.45, 0.93, -24.25), "rot": 0.0,
+		"fakes": [Vector3(-17.95, 0.6, -20.55), Vector3(6.0, 0.775, -36.0)],
+		"message": "Your wedding ring. You don't remember taking it off. You put it back on. It still fits."},
+]
+
+## The wife's letters. They get shorter and colder.
+const LETTERS := [
+	{"id": "letter_1", "pos": Vector3(-17.95, 0.6, -20.55),
+		"text": "My love,\n\nThe house is so quiet. Some nights I still set the table for three, and then I just sit there.\n\nI'm not angry. I just need you to come back to me. Get well. I'll be here.\n\nAll my love,\nC."},
+	{"id": "letter_2", "pos": Vector3(5.6, 1.15, -7.4),
+		"text": "Hi,\n\nThe doctor says you have good days and bad days. I came once, but they said you didn't know who I was.\n\nPlease get better.\n\nC."},
+	{"id": "letter_3", "pos": Vector3(9.6, 1.31, -20.0),
+		"text": "I don't know if you read these. Write back if you can.\n\nC."},
+	{"id": "letter_4", "pos": Vector3(6.3, 0.775, -41.2),
+		"text": "I need to tell you something when I visit. Please be clean.\n\nC."},
+]
 
 
 func get_settings() -> Dictionary:
 	var arrived := Game.previous_level == "philadelphia"
+	var start := "You wake up in your room. The lights hum. " + Recovery.days_text()
+	if arrived:
+		start = "The nurse at reception hands you a wristband. \"Room 12. West hall. Try to get some rest.\" " + Recovery.days_text()
+	elif Game.wake_message != "":
+		start = Game.wake_message
 	return {
 		"fog_mode": "exponential",
 		"fog_color": Config.HOSPITAL_FOG_COLOR,
@@ -61,8 +99,7 @@ func get_settings() -> Dictionary:
 		"episodes": true,
 		"navigation": true,
 		"withdrawal_rate": Config.HOSPITAL_WITHDRAWAL_RATE,
-		"start_message": "The nurse at reception hands you a wristband. \"Room 12. West hall. Try to get some rest.\"" if arrived
-			else "You wake up in your room. The lights hum. Another day.",
+		"start_message": start,
 	}
 
 
@@ -85,6 +122,7 @@ func build() -> void:
 	_courtyard()
 	_lawn()
 	_hidden_pills()
+	_items_and_letters()
 
 	var hum := AudioStreamPlayer.new()
 	hum.stream = Audio.hum()
@@ -93,14 +131,141 @@ func build() -> void:
 	add_child(hum)
 
 	spawn = _lobby_spawn if Game.previous_level == "philadelphia" else bed_spawn
+	Game.wake_message = ""
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	for l in _flicker:
 		if randf() < Config.LAMP_FLICKER_CHANCE:
 			l.light_energy = randf_range(0.0, Config.LAMP_ENERGY * 0.3)
 		else:
 			l.light_energy = lerpf(l.light_energy, Config.LAMP_ENERGY, 0.2)
+
+	_push_window = maxf(0.0, _push_window - delta)
+
+	# Under the influence, fake copies of the missing items appear. They go when it wears off.
+	_fakes = _fakes.filter(func(n): return is_instance_valid(n))
+	if Withdrawal.is_influenced() and _fakes.is_empty():
+		_spawn_fakes()
+	elif not Withdrawal.is_influenced() and not _fakes.is_empty():
+		for n in _fakes:
+			n.queue_free()
+		_fakes.clear()
+
+
+# ------------------------------------------------------------------ Items, letters, exit
+
+func _items_and_letters() -> void:
+	for it in ITEMS:
+		if it["id"] in Withdrawal.taken_pickups:
+			continue
+		var p := _item_pickup(it, "item")
+		p.message = it["message"]
+	for l in LETTERS:
+		if l["id"] in Withdrawal.taken_pickups:
+			continue
+		var p := Pickup.new()
+		p.kind = "letter"
+		p.item_id = l["id"]
+		p.prompt = "A letter"
+		p.title = "A LETTER FROM YOUR WIFE"
+		p.message = l["text"]
+		p.shape_size = Vector3(0.4, 0.25, 0.4)
+		p.position = l["pos"]
+		p.rotation.y = randf_range(-0.4, 0.4)
+		var envelope := MeshInstance3D.new()
+		var plane := PlaneMesh.new()
+		plane.size = Vector2(0.22, 0.12)
+		plane.material = mat("plain", Color(0.92, 0.9, 0.84), 1.0, false, Color(0.08, 0.08, 0.07))
+		envelope.mesh = plane
+		envelope.position.y = 0.005
+		p.add_child(envelope)
+		add_child(p)
+
+
+func _spawn_fakes() -> void:
+	for it in ITEMS:
+		if it["id"] in Withdrawal.found_items:
+			continue
+		var spots: Array = it["fakes"]
+		for i in mini(Config.FAKE_COPIES_PER_ITEM, spots.size()):
+			var fake_item: Dictionary = it.duplicate()
+			fake_item["pos"] = spots[i]
+			_fakes.append(_item_pickup(fake_item, "fake"))
+
+
+func _item_pickup(it: Dictionary, kind: String) -> Pickup:
+	var p := Pickup.new()
+	p.kind = kind
+	p.item_id = it["id"]
+	p.prompt = it["prompt"]
+	p.position = it["pos"]
+	p.rotation_degrees.y = it["rot"]
+	p.shape_size = Vector3(0.45, 0.35, 0.45)
+	p.add_child(_item_visual(it["id"]))
+	add_child(p)
+	return p
+
+
+func _item_visual(id: String) -> Node3D:
+	var root := Node3D.new()
+	var glint := Color(0.08, 0.07, 0.05)   # a faint glow so they can be found
+	match id:
+		"drawing", "photo":
+			var plane := PlaneMesh.new()
+			plane.size = Vector2(0.3, 0.21) if id == "drawing" else Vector2(0.1, 0.125)
+			plane.material = mat(id, Color.WHITE, 1.0, false, glint)
+			var mi := MeshInstance3D.new()
+			mi.mesh = plane
+			mi.position.y = 0.006
+			root.add_child(mi)
+		"teddy":
+			var fur := mat("fabric", Color(1.6, 1.1, 0.7), 3.0, false, glint)
+			box(Vector3(0, 0.1, 0), Vector3(0.17, 0.2, 0.13), fur, false, root)
+			box(Vector3(0, 0.26, 0), Vector3(0.14, 0.13, 0.12), fur, false, root)
+			for sx in [-0.06, 0.06]:
+				box(Vector3(sx, 0.34, 0), Vector3(0.04, 0.04, 0.03), fur, false, root)       # ears
+				box(Vector3(sx * 1.7, 0.13, -0.02), Vector3(0.05, 0.12, 0.05), fur, false, root)  # arms
+			box(Vector3(0.03, 0.28, -0.061), Vector3(0.02, 0.02, 0.01), m_dark, false, root)  # one button eye
+		"bracelet", "ring":
+			var torus := TorusMesh.new()
+			if id == "bracelet":
+				torus.inner_radius = 0.03
+				torus.outer_radius = 0.04
+				torus.material = mat("plain", Color(0.9, 0.5, 0.7), 1.0, false, glint)
+			else:
+				torus.inner_radius = 0.009
+				torus.outer_radius = 0.013
+				torus.material = mat("plain", Color(0.9, 0.75, 0.3), 1.0, false, Color(0.35, 0.28, 0.1))
+			torus.rings = 10
+			torus.ring_segments = 4
+			var mi := MeshInstance3D.new()
+			mi.mesh = torus
+			mi.position.y = 0.01
+			root.add_child(mi)
+			if id == "bracelet":
+				for i in 6:
+					var a := TAU * i / 6.0
+					var bead_color: Color = [Color(0.9, 0.9, 0.2), Color(0.3, 0.6, 0.9), Color(0.9, 0.3, 0.3)][i % 3]
+					box(Vector3(cos(a) * 0.035, 0.012, sin(a) * 0.035), Vector3(0.014, 0.014, 0.014),
+						mat("plain", bead_color, 1.0, false, glint), false, root)
+	return root
+
+
+## The exit door: the doctor decides. Press E again within a few seconds to push past him.
+func _on_exit() -> void:
+	if Recovery.recovery >= Config.RECOVERY_MAX:
+		Withdrawal.post_message("Dr. Reyes: \"You're ready.\"")
+		Game.good_ending()
+		return
+	if _push_window > 0.0:
+		_push_window = 0.0
+		Recovery.next_day("forced")
+		return
+	var line := "You're not ready." if Recovery.recovery < Config.EXIT_CLOSER_THRESHOLD \
+		else "Not yet. You're getting closer."
+	Withdrawal.post_message("Dr. Reyes: \"%s\"     (E again: push past him)" % line)
+	_push_window = Config.FORCE_EXIT_WINDOW
 
 
 func _make_materials() -> void:
@@ -134,9 +299,9 @@ func _lobby() -> void:
 	box(Vector3(0, DOOR_H * 0.5, -0.15), Vector3(0.08, DOOR_H, 0.04), m_dark, false)
 	hsign("EXIT", Vector3(0, 2.6, -0.22), 180, m_green)
 	var exit := Pickup.new()
-	exit.kind = "locked"
+	exit.kind = "action"
 	exit.prompt = "Exit"
-	exit.message = "Dr. Reyes steps in front of the door. \"Not so fast. You're not ready to leave yet.\""
+	exit.action = _on_exit
 	exit.shape_size = Vector3(3.0, 2.2, 0.6)
 	exit.position = Vector3(0, 0, -0.5)
 	add_child(exit)
@@ -155,7 +320,7 @@ func _lobby() -> void:
 	wheelchair(Vector3(6.6, 0, -1.6), PI * 0.3)
 	sign_text("Recovery is not a straight line.", Vector3(-7.77, 2.0, -6.5), 90, 20, Color(0.3, 0.35, 0.4))
 
-	npc("doctor", Vector3(1.9, 0, -1.4), 0.0, ["You're not ready to leave. Not yet.", "Your room is down the west hall. Get some rest."], "Dr. Reyes")
+	npc("doctor", Vector3(1.9, 0, -1.4), 0.0, ["If you think you're ready, come and tell me at the door.", "Nobody leaves until they're ready. That's the deal."], "Dr. Reyes")
 	npc("nurse", Vector3(5, 0, -8.6), PI, ["Your room is number twelve, west hall.", "If you need anything, the nurses' station is in the east hall."], "Nurse Kim")
 
 	_lobby_spawn = Transform3D(Basis.IDENTITY, Vector3(0, 0.05, -2.6))
@@ -484,14 +649,24 @@ func _schedule_text() -> String:
 	return "\n".join(_schedule_lines()) + "\n\nActivities are once a day. Not allowed under the influence."
 
 
+## The patient chart: the only place Recovery is shown - as a hand-drawn scale and a word, never a number.
 func _chart_text() -> String:
-	return "Programme: residential withdrawal management\n" \
-		+ "Admitted: the date has been crossed out and written again.\n\n" \
-		+ "Recovery: not yet assessed\n\n" \
-		+ "Notes:\n" \
-		+ "- Sleeping poorly. Check on him at night.\n" \
-		+ "- Encourage attendance at group therapy.\n" \
-		+ "- Next of kin: wife."
+	var lines: Array[String] = []
+	lines.append("Programme: residential withdrawal management")
+	lines.append("Admitted: the date has been crossed out and written again.")
+	lines.append("")
+	lines.append("Day %d." % Recovery.day())
+	lines.append("Recovery  %s   %s" % [Recovery.scale_text(), Recovery.assessment()])
+	lines.append("")
+	lines.append("Notes:")
+	lines.append("- Sleeping poorly. Check on him at night.")
+	lines.append("- Encourage attendance at group therapy.")
+	var recent := Recovery.notes.slice(maxi(0, Recovery.notes.size() - 5))
+	for n in recent:
+		lines.append("- " + n)
+	lines.append("")
+	lines.append("Next of kin: wife. Visit planned: %s" % Recovery.days_text().to_lower())
+	return "\n".join(lines)
 
 
 # ------------------------------------------------------------------ Building blocks

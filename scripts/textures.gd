@@ -11,6 +11,8 @@ static func get_texture(kind: String) -> Texture2D:
 	match kind:
 		"drawing":
 			img = _drawing()
+		"photo":
+			img = _photo()
 		"puff":
 			img = _radial(16, 0.9)
 		"sun":
@@ -175,6 +177,40 @@ static func _radial(size: int, power: float) -> Image:
 			var d := Vector2(x + 0.5 - half, y + 0.5 - half).length() / half
 			var a := pow(clampf(1.0 - d, 0.0, 1.0), power)
 			img.set_pixel(x, y, Color(1, 1, 1, a))
+	return img
+
+
+## A faded family photo: white border, two adults and a child on the father's shoulders.
+static func _photo() -> Image:
+	var w := 24
+	var h := 30
+	var img := Image.create_empty(w, h, false, Image.FORMAT_RGB8)
+	img.fill(Color(0.9, 0.88, 0.82))
+	for y in range(2, 24):
+		for x in range(2, 22):
+			var sky := Color(0.55, 0.62, 0.6).lerp(Color(0.45, 0.5, 0.35), float(y) / 24.0)
+			img.set_pixel(x, y, sky)
+	var dad := Color(0.25, 0.22, 0.24)
+	var mom := Color(0.42, 0.25, 0.28)
+	var kid := Color(0.75, 0.45, 0.35)
+	for y in range(9, 24):       # father
+		for x in range(7, 11):
+			img.set_pixel(x, y, dad)
+	for y in range(6, 9):
+		for x in range(8, 10):
+			img.set_pixel(x, y, Color(0.7, 0.55, 0.45))
+	for y in range(11, 24):      # mother
+		for x in range(13, 16):
+			img.set_pixel(x, y, mom)
+	for y in range(8, 11):
+		for x in range(13, 15):
+			img.set_pixel(x, y, Color(0.72, 0.58, 0.48))
+	for y in range(2, 6):        # the child on his shoulders
+		for x in range(7, 11):
+			img.set_pixel(x, y, kid)
+	# The photo is creased right across her.
+	for x in range(2, 22):
+		img.set_pixel(x, 4 + x / 8, Color(0.85, 0.83, 0.78))
 	return img
 
 

@@ -10,7 +10,6 @@ const Player := preload("res://scripts/player.gd")
 signal caught_player   # step 5: a day passes
 
 var player: Player
-var bed_spawn: Transform3D
 var post_material: ShaderMaterial
 
 var active := false
@@ -111,29 +110,16 @@ func _on_caught() -> void:
 	post_material.set_shader_parameter("fade_color", Color(0.35, 0.0, 0.0))
 	var tw := create_tween()
 	tw.tween_property(self, "fade", 1.0, 0.5)
-	tw.tween_interval(1.0)
-	tw.tween_callback(_wake_up)
 	tw.tween_interval(0.8)
-	tw.tween_property(self, "fade", 0.0, 2.0)
-	tw.tween_callback(_finish_panic)
+	tw.tween_callback(_wake_up)
 
 
+## A day passes: the hospital reloads and you wake up in your bed (Recovery.next_day).
 func _wake_up() -> void:
 	_sound.stop()
-	post_material.set_shader_parameter("fade_color", Color(0, 0, 0))
-	player.global_transform = bed_spawn
-	player.velocity = Vector3.ZERO
-	player.reset_look()
-	Withdrawal.meter = Config.CAUGHT_METER_AFTER
-	caught_player.emit()
-	Withdrawal.post_message("You wake up in your bed. The sheets are soaked with sweat. It's morning.")
-
-
-func _finish_panic() -> void:
-	panicking = false
-	player.frozen = false
 	Withdrawal.state = ""
-	_cooldown = Config.HALLUCINATION_COOLDOWN
+	caught_player.emit()
+	Recovery.next_day("caught")
 
 
 func _update_effects(delta: float) -> void:

@@ -64,11 +64,25 @@ func pill_message() -> String:
 	return PILL_MESSAGES[clampi(pills_taken - 1, 0, PILL_MESSAGES.size() - 1)]
 
 
+## A personal item was found: it lowers withdrawal (and Recovery listens to items_changed).
 func add_item(id: String) -> void:
 	if id in found_items:
 		return
 	found_items.append(id)
 	taken_pickups.append(id)
+	meter = maxf(0.0, meter - Config.ITEM_WITHDRAWAL_RELIEF)
+	items_changed.emit()
+
+
+## Start over (after an ending).
+func reset() -> void:
+	meter = Config.METER_START
+	addiction = 0.0
+	pills_taken = 0
+	influence = 0.0
+	state = ""
+	found_items.clear()
+	taken_pickups.clear()
 	items_changed.emit()
 
 

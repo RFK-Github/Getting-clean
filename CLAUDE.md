@@ -13,7 +13,8 @@ Godot 4 project: first-person psychological horror game about addiction, PS1 sty
 - Character models (Mixamo) go in `assets/characters/`; code uses placeholder boxes when a model is missing.
 
 ## Layout
-- `scripts/config.gd`, `settings.gd`, `withdrawal.gd`, `game.gd`: autoloads (Config, Settings, Withdrawal, Game)
+- `scripts/config.gd`, `settings.gd`, `withdrawal.gd`, `game.gd`, `recovery.gd`: autoloads (Config, Settings, Withdrawal, Game, Recovery)
+- `Recovery`: Recovery meter (only shown on the clipboard), days until the wife visits, `next_day()`, flashbacks seen, letters read. `Game.game_over()` / `good_ending()` are placeholder screens until step 10
 - `scripts/main.gd`: builds whichever level `Game.current_level` names (see `LEVELS`); `Game.change_level()` fades and reloads
 - `scripts/levels/`: levels built from boxes in code, all extend `level_base.gd` (`build()`, `get_settings()`, `spawn`)
   - `philadelphia.gd`: level 1. `hospital.gd`: level 2 (map of all rooms at the top of the file)

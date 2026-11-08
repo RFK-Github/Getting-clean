@@ -189,13 +189,40 @@ const MONSTER_SPAWN_DISTANCE := 7.0
 const MONSTER_SPEED := 2.75                  # a little faster than walking, slower than sprinting
 const MONSTER_SPEED_PER_ADDICTION := 0.3
 const MONSTER_CATCH_DISTANCE := 0.9
-const CAUGHT_METER_AFTER := 45.0             # withdrawal when you wake up in bed
 
 # ---------- Sound (hospital) ----------
 const LOUD_SOUND_DB := -6.0                  # hallucination sound (bus "Loud")
 const AMBIENT_HUM_DB := -22.0
 
+# ---------- Countdown (days until the wife visits) ----------
+const COUNTDOWN_DAYS := 7                    # caught or forced back to bed = one day passes; 0 = game over
+const WAKE_METER := 45.0                     # withdrawal when you wake up the next morning
+
+# ---------- Recovery meter (0-100, decides when the doctors let you leave) ----------
+const RECOVERY_START := 10.0
+const RECOVERY_MAX := 100.0
+const RECOVERY_CAP_BEFORE_TRUTH := 90.0      # can't go higher until every flashback is seen
+const FLASHBACKS_TOTAL := 3
+const RECOVERY_CLEAN_PER_MINUTE := 1.5       # time in the hospital without drugs
+const RECOVERY_EPISODE_SURVIVED := 10.0      # big gain
+const RECOVERY_ITEM := 6.0
+const RECOVERY_LETTER := 4.0
+const RECOVERY_FLASHBACK := 8.0              # step 6
+const RECOVERY_TALK := 2.0                   # step 7
+const RECOVERY_ACTIVITY_SHOW_UP := 3.0       # step 8
+const RECOVERY_ACTIVITY_DO_WELL := 4.0       # step 8 (extra)
+const RECOVERY_PILL_LOSS := 25.0             # big loss
+const EXIT_CLOSER_THRESHOLD := 60.0          # doctor: "Not yet. You're getting closer."
+const FORCE_EXIT_WINDOW := 5.0               # seconds to press E again and push past the doctor
+
+# ---------- Items and letters ----------
+const ITEM_WITHDRAWAL_RELIEF := 25.0         # finding an item lowers withdrawal
+const LETTER_WITHDRAWAL_RELIEF := 10.0
+const ITEM_FLICKER := 0.6                    # under the influence: how often real items vanish (0-1)
+const FAKE_COPIES_PER_ITEM := 1              # under the influence: decoys that turn to nothing
+
 # ---------- Story / HUD ----------
 const ITEMS_TOTAL := 5
+const LETTERS_TOTAL := 4
 const MESSAGE_DURATION := 5.0
 const HELP_TEXT_DURATION := 12.0
