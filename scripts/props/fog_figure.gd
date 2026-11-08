@@ -43,6 +43,7 @@ func _ready() -> void:
 		# The same laughter as the daughter in the car.
 		_laugh = AudioStreamPlayer3D.new()
 		_laugh.stream = Audio.child_laugh()
+		_laugh.pitch_scale = Config.CHILD_VOICE_PITCH
 		_laugh.volume_db = Config.GIRL_LAUGH_DB
 		_laugh.unit_size = 8.0
 		_laugh.position.y = 1.0

@@ -32,3 +32,10 @@ See `CLAUDE.md` → *Export*. Presets for **macOS** and **Web** are in `export_p
 - `scripts/cutscenes/` – flashbacks and the two endings
 - `scripts/activities/` – basketball, football, swimming
 - `assets/characters/` – drop Mixamo `.glb` models here to replace the placeholder boxes
+
+## Credits
+- "Four Years Old child laughing" by morgantj (Wikimedia Commons), CC BY 3.0
+- "Female Scream 1" by Nocturnal_Vanguard / AuraVoice (OpenGameArt), CC0
+- "Screams of horror" by WuxiaScrub (OpenGameArt), CC0
+
+Details and links: `assets/sounds/README.md`. Everything else is generated in code.

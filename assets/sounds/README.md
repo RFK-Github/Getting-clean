@@ -24,4 +24,8 @@ Write down where each file came from (for the credits), e.g. in this file:
 
 | File | Source | Licence |
 |---|---|---|
-| | | |
+| `child_laugh.wav` | "Four Years Old child laughing" by morgantj, Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Four_Years_Old_child_laughing.ogg (cut: 0.25-1.75 s + 2.95-4.05 s, mono) | **CC BY 3.0** - credit required: "Four Years Old child laughing" by morgantj, CC BY 3.0 |
+| `woman_scream.wav` | "Female Scream 1" by Nocturnal_Vanguard (AuraVoice), OpenGameArt: https://opengameart.org/node/147410 (cut: 0.5-1.4 s, mono) | CC0 |
+| `child_scream.wav` | "Female high-pitched scream SFX" (Screams of horror, 4 pitches) by WuxiaScrub, OpenGameArt: https://opengameart.org/node/131040 (the highest of the four, mono) | CC0 |
+
+The untouched originals are in `_src/`.

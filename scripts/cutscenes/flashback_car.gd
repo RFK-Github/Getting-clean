@@ -70,11 +70,11 @@ func build() -> void:
 	at(0.6, func(): say("Daughter: \"Daddy! Do the funny voice again!\"", 2.2))
 	at(3.2, func():
 		say("You do the voice. She laughs so hard she can't breathe.", 2.6)
-		sound(Audio.child_laugh(), -4.0, "Master", true))
-	at(4.9, func(): sound(Audio.child_laugh(), -6.0, "Master", true).pitch_scale = 1.08)
+		sound(Audio.child_laugh(), -4.0, "Master", true).pitch_scale = Config.CHILD_VOICE_PITCH)
+	at(4.9, func(): sound(Audio.child_laugh(), -6.0, "Master", true).pitch_scale = Config.CHILD_VOICE_PITCH * 1.05)
 	at(6.0, func():
 		say("Daughter: \"Again! Again!\"", 1.8)
-		sound(Audio.child_laugh(), -4.0, "Master", true).pitch_scale = 1.15)
+		sound(Audio.child_laugh(), -4.0, "Master", true).pitch_scale = Config.CHILD_VOICE_PITCH * 1.1)
 	at(TURN_BACK + 0.1, func(): sound(Audio.horn(), Config.CUTSCENE_SCREAM_DB, Settings.LOUD_BUS, true))   # the other car
 	at(7.5, func(): say("You're laughing too. You haven't looked at the road in a while.", 1.1))
 	at(LOOK_OUT, func():

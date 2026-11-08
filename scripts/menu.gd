@@ -113,6 +113,7 @@ func _build_ui() -> void:
 	root.add_child(_main)
 	_button(_main, "New game", func(): Game.new_game())
 	_button(_main, "Settings", func(): _show_settings(true))
+	_button(_main, "Credits", func(): Game.show_text("CREDITS", Config.CREDITS))
 	if not OS.has_feature("web"):
 		_button(_main, "Quit", func(): get_tree().quit())
 

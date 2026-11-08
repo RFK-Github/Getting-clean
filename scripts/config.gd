@@ -11,6 +11,7 @@ const FOV := 70.0
 
 # ---------- Title, content note, support ----------
 const GAME_TITLE := "Getting Clean"
+const CREDITS := "Getting Clean - a school project made with Godot.\n\nSounds:\n\"Four Years Old child laughing\" by morgantj (Wikimedia Commons), CC BY 3.0\n\"Female Scream 1\" by Nocturnal_Vanguard / AuraVoice (OpenGameArt), CC0\n\"Screams of horror\" by WuxiaScrub (OpenGameArt), CC0\n\nAll other sounds, textures and models are made in code for this game."
 const CONTENT_NOTE := "This game deals with addiction, withdrawal, grief and the death of a child in a car accident."
 const SUPPORT_TEXT := "If you or someone you know is struggling with addiction, help is available.\nIn the US: SAMHSA National Helpline, 1-800-662-4357 (free, confidential, 24/7).\nElsewhere: talk to a doctor or a local support line."
 
@@ -306,6 +307,7 @@ const GIRL_LIFETIME := 45.0                  # she's gone after this long if you
 const GIRL_DRESS_COLOR := Color(0.9, 0.75, 0.3)   # the same yellow as in the car
 const GIRL_LAUGH_DISTANCE := 25.0            # she laughs when you come this close
 const GIRL_LAUGH_DB := -4.0
+const CHILD_VOICE_PITCH := 1.1               # the laughter recording is a little boy: a bit higher for her
 # The reception phone rings. Nobody else hears it.
 const PHONE_MIN_METER := 45.0
 const PHONE_FIRST_DELAY := 60.0
