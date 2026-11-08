@@ -35,4 +35,5 @@ window/stretch/mode="viewport"
 textures/canvas_textures/default_texture_filter=0
 textures/vram_compression/import_etc2_astc=true
 renderer/rendering_method="gl_compatibility"
+limits/opengl/max_renderable_lights=64
 renderer/rendering_method.mobile="gl_compatibility"

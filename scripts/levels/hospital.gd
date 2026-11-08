@@ -15,6 +15,11 @@ extends "res://scripts/levels/level_base.gd"
 ##   Pool                x  20..40,  z -46..-14
 ##   Courtyard (outdoor) x -12..12,  z -76..-52  (basketball hoop)
 ##   Lawn (outdoor)      x -44..-12, z -84..-52  (football goal)
+##   Visiting room       x -16..-8,  z -12..0    (locked; window from the lobby)
+##   Stairwell           x   8..16,  z -12..0    (stairs up to the 2nd floor, door to the cafeteria)
+##   Cafeteria           x  10..20,  z -22..-12
+##   2ND FLOOR (y 3.25): corridor x 8..11, z -40..-12; chapel x 0..8, z -24..-12;
+##     records x 0..8, z -38..-24 (his file); library x 11..20, z -24..-12; art therapy x 11..20, z -38..-24
 
 const Npc := preload("res://scripts/npc.gd")
 const Mirror := preload("res://scripts/props/mirror.gd")
@@ -24,6 +29,7 @@ const H := 3.0          # ceiling height
 const T := 0.2          # wall thickness
 const DOOR_H := 2.2
 const OUT_H := 4.0      # outdoor wall height
+const SECOND_FLOOR := 3.25   # floor height of the second floor
 
 var m_floor: ShaderMaterial
 var m_wall: ShaderMaterial
@@ -122,6 +128,10 @@ func build() -> void:
 	_pool()
 	_courtyard()
 	_lawn()
+	_visiting_room()
+	_stairwell()
+	_cafeteria()
+	_second_floor()
 	_hidden_pills()
 	_items_and_letters()
 	_activity_spots()
@@ -604,7 +614,8 @@ func _make_materials() -> void:
 # ------------------------------------------------------------------ Rooms
 
 func _lobby() -> void:
-	room(-8, 8, -12, 0, m_floor, {"s": [[0.0, 3.0]], "n": [[0.0, 3.0]]})
+	room(-8, 8, -12, 0, m_floor, {"s": [[0.0, 3.0]], "n": [[0.0, 3.0]],
+		"e": [[-6.0, 2.0]], "w": [[-6.0, 1.2], [-2.5, 2.0]]})
 	lamp(Vector3(-4, 0, -6))
 	lamp(Vector3(4, 0, -6))
 
@@ -945,7 +956,225 @@ func _lawn() -> void:
 	keeper.name = "Goalie"
 
 
-## Drugs hidden around the center. Each id is taken only once.
+## Visiting room (west of the lobby): locked until visiting day. You can look in through the window.
+func _visiting_room() -> void:
+	room(-16, -8, -12, 0, m_floor, {"e": [[-6.0, 1.2], [-2.5, 2.0]]})
+	lamp(Vector3(-12, 0, -6), false, 0.5)
+	# The window between the lobby and the visiting room: wall below, glass above.
+	box(Vector3(-8, 0.5, -2.5), Vector3(0.4, 1.0, 2.0), m_wall)
+	var glass := StandardMaterial3D.new()
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.albedo_color = Color(0.7, 0.8, 0.85, 0.18)
+	glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	box(Vector3(-8, 1.6, -2.5), Vector3(0.04, 1.2, 2.0), glass)
+	closed_door(Vector3(-7.82, 0, -6), 90, "Visiting room", "Locked. A card on the door: VISITING DAY ONLY.")
+	hsign("VISITING ROOM", Vector3(-7.77, 2.45, -6), 90)
+	# Inside: one table, two chairs, a box of tissues.
+	table(Vector3(-12, 0, -6), Vector2(1.2, 0.9))
+	chair(Vector3(-12, 0, -6.8), PI)
+	chair(Vector3(-12, 0, -5.2), 0.0)
+	box(Vector3(-11.7, 0.83, -6.1), Vector3(0.2, 0.1, 0.12), m_white, false)
+	box(Vector3(-15.77, 1.6, -6), Vector3(0.04, 1.2, 2.4), m_window, false)
+	plant(Vector3(-15.3, 0, -11.3))
+
+
+## Stairwell (east of the lobby): a ramp of stairs up to the second floor. Two storeys tall.
+func _stairwell() -> void:
+	room(8, 16, -12, 0, m_floor, {"w": [[-6.0, 2.0]], "n": [[11.0, 2.0]]}, null, false, SECOND_FLOOR, 0.0, true)
+	room(8, 16, -12, 0, null, {"n": [[9.5, 1.8]]}, null, true, H, SECOND_FLOOR)
+	lamp(Vector3(10, 0, -4))
+	lamp(Vector3(12, SECOND_FLOOR, -6))
+	hsign("STAIRS  -  2ND FLOOR", Vector3(7.77, 2.45, -6), -90)
+	hsign("CAFETERIA", Vector3(11, 2.45, -11.77), 0)
+
+	# Stairs: x 12..15.8, rising from z -2.5 (floor) to z -9.5 (2nd floor). One sloped collider.
+	var run := 7.0
+	var steps := 13
+	for i in steps:
+		var top := SECOND_FLOOR * (i + 1) / steps
+		var z := -2.5 - run * (i + 0.5) / steps
+		box(Vector3(13.9, top * 0.5, z), Vector3(3.8, top, run / steps), m_concrete, false, null, 2.0)
+	var ramp := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	var length := sqrt(run * run + SECOND_FLOOR * SECOND_FLOOR)
+	shape.size = Vector3(3.8, 0.2, length)
+	cs.shape = shape
+	ramp.add_child(cs)
+	ramp.position = Vector3(13.9, SECOND_FLOOR * 0.5 - 0.1, -2.5 - run * 0.5)
+	ramp.rotation.x = atan2(SECOND_FLOOR, run)
+	add_child(ramp)
+	invisible_wall(Vector3(11.95, SECOND_FLOOR * 0.5, -6.0), Vector3(0.1, SECOND_FLOOR, run))   # can't step on from the side
+	box(Vector3(11.95, SECOND_FLOOR * 0.5 + 0.5, -6.0), Vector3(0.05, 0.05, run), m_metal, false)   # handrail (low end)
+	# Landing at the top
+	box(Vector3(12, SECOND_FLOOR - 0.1, -10.7), Vector3(7.8, 0.2, 2.4), m_floor, true, null, 1.5)
+	invisible_wall(Vector3(10.0, SECOND_FLOOR + 0.5, -9.45), Vector3(3.8, 1.0, 0.1))
+	box(Vector3(10.0, SECOND_FLOOR + 0.95, -9.45), Vector3(3.8, 0.05, 0.05), m_metal, false)
+	for x in [8.3, 10.0, 11.9]:
+		box(Vector3(x, SECOND_FLOOR + 0.5, -9.45), Vector3(0.05, 1.0, 0.05), m_metal, false)
+
+
+## Cafeteria (behind the stairwell, next to the office).
+func _cafeteria() -> void:
+	room(10, 20, -22, -12, m_floor, {"s": [[11.0, 2.0]]})
+	lamp(Vector3(13, 0, -17))
+	lamp(Vector3(17, 0, -17))
+	for z in [-15.0, -19.0]:
+		table(Vector3(15, 0, z), Vector2(3.0, 0.9))
+		for x in [14.0, 15.0, 16.0]:
+			chair(Vector3(x, 0, z - 0.75), PI)
+			chair(Vector3(x, 0, z + 0.75), 0.0)
+	# Serving counter with trays
+	box(Vector3(11.2, 0.5, -17), Vector3(0.8, 1.0, 6.0), m_metal)
+	for z in [-19.0, -17.5, -16.0]:
+		box(Vector3(11.2, 1.02, z), Vector3(0.5, 0.03, 0.35), mat("plain", Color(0.4, 0.5, 0.6), 1.0), false)
+	box(Vector3(10.22, 1.7, -17), Vector3(0.04, 0.8, 1.6), mat("plain", Color(0.1, 0.12, 0.1), 1.0), false)   # menu board
+	sign_text("TODAY\nSOUP\nBREAD\nJELLO", Vector3(10.25, 1.7, -17), 90, 16, Color(0.9, 0.9, 0.85))
+	for x in [12.5, 17.5]:
+		box(Vector3(x, 1.6, -21.77), Vector3(1.8, 1.1, 0.04), m_window, false)
+	var a := npc("patient", Vector3(14, 0, -15.75), PI, ["The soup is the same every day. I think it's the same soup."], "")
+	a.pose = "sit"
+	var b := npc("patient", Vector3(16, 0, -19.75), PI, ["...", "Sit wherever. Nobody owns a chair here."], "")
+	b.pose = "sit"
+	npc("nurse", Vector3(10.5, 0, -17.0), -PI * 0.5, ["Eat something. Even if it's just bread."], "Nurse Ana")
+
+
+## The second floor (up the stairs): a corridor with the chapel, records room, library and
+## art therapy room. The floor is one collider under the whole area.
+func _second_floor() -> void:
+	var y := SECOND_FLOOR
+	invisible_wall(Vector3(10, y - 0.1, -26), Vector3(20, 0.2, 28))   # x 0..20, z -40..-12
+	room(8, 11, -40, -12, m_floor, {"s": [[9.5, 1.8]],
+		"w": [[-18.0, 1.4], [-31.0, 1.4]], "e": [[-18.0, 1.4], [-31.0, 1.4]]}, null, true, H, y)
+	lamp(Vector3(9.5, y, -18))
+	lamp(Vector3(9.5, y, -32), true)
+	box(Vector3(9.5, y + 1.6, -39.77), Vector3(2.0, 1.2, 0.04), m_window, false)
+	hsign("CHAPEL", Vector3(8.23, y + 2.45, -18), 90)
+	hsign("RECORDS - STAFF ONLY", Vector3(8.23, y + 2.45, -31), 90)
+	hsign("LIBRARY", Vector3(10.77, y + 2.45, -18), -90)
+	hsign("ART THERAPY", Vector3(10.77, y + 2.45, -31), -90)
+
+	# --- Chapel: pews, a small altar with candles, a coloured window
+	room(0, 8, -24, -12, mat("carpet", Color(0.9, 0.6, 0.6), 0.5), {"e": [[-18.0, 1.4]]}, null, true, H, y)
+	lamp(Vector3(4, y, -15), false, 0.35)
+	for z in [-15.0, -17.0, -19.0]:
+		bench(Vector3(3.2, y, z), 0.0)
+		bench(Vector3(5.2, y, z), 0.0)
+	box(Vector3(4, y + 0.5, -22.6), Vector3(1.6, 1.0, 0.6), m_wood)
+	box(Vector3(4, y + 1.7, -23.77), Vector3(1.4, 1.8, 0.04), mat("plain", Color(0.5, 0.35, 0.7), 1.0, true, Color(0.35, 0.2, 0.5)), false)
+	var candle_light := OmniLight3D.new()
+	candle_light.position = Vector3(4, y + 1.3, -22.4)
+	candle_light.light_color = Color(1.0, 0.75, 0.4)
+	candle_light.light_energy = 0.0
+	candle_light.omni_range = 4.0
+	add_child(candle_light)
+	var flames: Array[Node3D] = []
+	for i in 5:
+		var cx := 3.5 + i * 0.25
+		cylinder(Vector3(cx, y + 1.08, -22.5), 0.025, 0.16, m_white)
+		var flame := box(Vector3(cx, y + 1.19, -22.5), Vector3(0.025, 0.05, 0.025), mat("plain", Color(1, 0.8, 0.4), 1.0, false, Color(1, 0.7, 0.3)), false)
+		flame.visible = false
+		flames.append(flame)
+	_toggle_spot(Vector3(4, y + 0.2, -22.0), Vector3(1.8, 1.4, 0.8),
+		func(): return "Light a candle" if not flames[0].visible else "Candles",
+		func():
+			if flames[0].visible:
+				Withdrawal.post_message("The candles burn quietly. Nobody else comes up here.")
+				return
+			for fl in flames:
+				fl.visible = true
+			candle_light.light_energy = 0.8
+			Withdrawal.post_message("You light a candle. You don't say who it's for. You don't have to."))
+	# Upright piano
+	box(Vector3(0.6, y + 0.65, -13.0), Vector3(0.6, 1.3, 1.5), m_dark)
+	box(Vector3(0.95, y + 0.75, -13.0), Vector3(0.12, 0.03, 1.3), m_white, false)
+	var piano := AudioStreamPlayer3D.new()
+	piano.stream = Audio.music_box()
+	piano.pitch_scale = 0.5
+	piano.unit_size = 4.0
+	piano.position = Vector3(0.9, y + 0.8, -13.0)
+	add_child(piano)
+	_toggle_spot(Vector3(1.2, y + 0.3, -13.0), Vector3(0.6, 1.2, 1.4),
+		func(): return "Play the piano",
+		func():
+			piano.play()
+			_remark("piano", "Your fingers find a lullaby on their own. You stop before the end."))
+
+	# --- Records: shelves of boxes, and his file open on the desk
+	room(0, 8, -38, -24, m_floor, {"e": [[-31.0, 1.4]]}, null, true, H, y)
+	lamp(Vector3(4, y, -31), false, 0.6)
+	for x in [0.6, 2.4]:
+		for z in [-26.5, -29.5, -32.5, -35.5]:
+			box(Vector3(x, y + 1.0, z), Vector3(0.5, 2.0, 2.4), m_metal)
+	box(Vector3(5.5, y + 0.74, -35.5), Vector3(1.6, 0.06, 0.8), m_wood)
+	box(Vector3(5.5, y + 0.36, -35.5), Vector3(0.1, 0.72, 0.1), m_dark, false)
+	box(Vector3(5.4, y + 0.78, -35.4), Vector3(0.32, 0.02, 0.24), mat("plain", Color(0.85, 0.8, 0.6), 1.0, false, Color(0.06, 0.06, 0.04)), false)
+	var file := Pickup.new()
+	file.kind = "read"
+	file.prompt = "A patient file"
+	file.title = "PATIENT FILE - ROOM 12"
+	file.text_source = _patient_file_text
+	file.shape_size = Vector3(0.6, 0.4, 0.5)
+	file.position = Vector3(5.4, y + 0.7, -35.4)
+	add_child(file)
+
+	# --- Library: shelves, armchairs, someone reading
+	room(11, 20, -24, -12, mat("carpet", Color(0.8, 0.8, 1.0), 0.5), {"w": [[-18.0, 1.4]]}, null, true, H, y)
+	lamp(Vector3(15.5, y, -18), false, 0.7)
+	for z in [-13.0, -23.0]:
+		box(Vector3(15.5, y + 1.0, z), Vector3(7.0, 2.0, 0.5), m_wood)
+	var shelf := Pickup.new()
+	shelf.kind = "read"
+	shelf.prompt = "Take a book"
+	shelf.title = "A BOOK FROM THE LIBRARY"
+	var book_i := [2]
+	shelf.text_source = func():
+		book_i[0] += 1
+		return BOOKS[book_i[0] % BOOKS.size()]
+	shelf.shape_size = Vector3(7.0, 1.6, 0.8)
+	shelf.position = Vector3(15.5, y + 0.2, -13.6)
+	add_child(shelf)
+	sofa(Vector3(15.5, y, -19.5), PI)
+	var reader := npc("patient", Vector3(15.0, y, -19.5), PI, ["Shh. ...Sorry. Habit.", "This is the only quiet place in the building."], "Iris")
+	reader.pose = "sit"
+
+	# --- Art therapy: easels and paintings on the walls
+	room(11, 20, -38, -24, m_floor, {"w": [[-31.0, 1.4]]}, null, true, H, y)
+	lamp(Vector3(15.5, y, -31), false, 0.8)
+	var colours := [Color(0.8, 0.3, 0.2), Color(0.3, 0.5, 0.8), Color(0.9, 0.8, 0.3), Color(0.4, 0.7, 0.4), Color(0.6, 0.4, 0.7)]
+	for i in 5:
+		box(Vector3(12.5 + i * 1.6, y + 1.7, -37.77), Vector3(1.0, 0.8, 0.04), mat("plain", colours[i], 1.0), false)
+	for x in [13.5, 16.0, 18.5]:
+		box(Vector3(x, y + 0.75, -30), Vector3(0.06, 1.5, 0.06), m_wood, false)
+		box(Vector3(x, y + 1.2, -29.95), Vector3(0.8, 0.6, 0.03), m_sheet, false)
+	table(Vector3(15.5, y, -26.5), Vector2(3.0, 1.0))
+	var paintings := Pickup.new()
+	paintings.kind = "locked"
+	paintings.prompt = "Paintings"
+	paintings.message = "Dozens of paintings by patients. One of them is signed with your name. A car, and too much red. You don't remember painting it."
+	paintings.shape_size = Vector3(8.0, 1.2, 0.6)
+	paintings.position = Vector3(15.5, y + 1.0, -37.3)
+	add_child(paintings)
+
+
+## His file in the records room: he has been here many times.
+func _patient_file_text() -> String:
+	var a := Config.YEAR_HE_THINKS
+	var now := Config.YEAR_NOW
+	return "\n".join([
+		"Admissions:",
+		"  March %d  -  discharged June %d" % [a, a],
+		"  January %d  -  left against medical advice" % (a + 1),
+		"  September %d  -  discharged December %d" % [a + 2, a + 2],
+		"  May %d  -  transferred" % (a + 3),
+		"  October %d  -  current" % now,
+		"",
+		"Notes: patient consistently believes he was admitted 'a few weeks ago'.",
+		"Do not correct abruptly. Let him find his own way to it.",
+	])
+
+
+## Drugs hidden around the center. Taken ones come back the next day.
 func _hidden_pills() -> void:
 	pill_bottle(Vector3(-24.0, 0, -22.7), "room11_floor")        # rolled under the next bed
 	pill_bottle(Vector3(-10.2, 1.0, -31.5), "med_cart")          # on the medication cart
@@ -1001,34 +1230,38 @@ func _chart_text() -> String:
 
 ## A room with its walls on the inside of its rectangle, so neighbouring rooms sit back to back.
 ## doors: {"n"/"s": [[x, width], ...], "w"/"e": [[z, width], ...]} (n = -Z side, e = +X side)
+## base_y: the floor it stands on (0, or SECOND_FLOOR). floor_mat null = no floor of its own.
 func room(x0: float, x1: float, z_north: float, z_south: float, floor_mat: Material,
-		doors := {}, wall_mat: Material = null, ceiling := true, height := H) -> void:
+		doors := {}, wall_mat: Material = null, ceiling := true, height := H, base_y := 0.0,
+		lintels: Variant = null) -> void:
 	if wall_mat == null:
 		wall_mat = m_wall
+	var over_doors: bool = ceiling if lintels == null else lintels   # wall above doorways
 	var c := Vector3((x0 + x1) * 0.5, 0, (z_north + z_south) * 0.5)
 	var size := Vector2(x1 - x0, z_south - z_north)
-	box(Vector3(c.x, -0.05, c.z), Vector3(size.x, 0.1, size.y), floor_mat, false, null, 1.5)
+	if floor_mat != null:
+		box(Vector3(c.x, base_y - 0.05, c.z), Vector3(size.x, 0.1, size.y), floor_mat, false, null, 1.5)
 	if ceiling:
-		box(Vector3(c.x, height + 0.05, c.z), Vector3(size.x, 0.1, size.y), m_ceiling, false, null, 1.5)
-	_wall(false, z_south - T * 0.5, x0, x1, doors.get("s", []), wall_mat, height, ceiling)
-	_wall(false, z_north + T * 0.5, x0, x1, doors.get("n", []), wall_mat, height, ceiling)
-	_wall(true, x0 + T * 0.5, z_north + T, z_south - T, doors.get("w", []), wall_mat, height, ceiling)
-	_wall(true, x1 - T * 0.5, z_north + T, z_south - T, doors.get("e", []), wall_mat, height, ceiling)
+		box(Vector3(c.x, base_y + height + 0.05, c.z), Vector3(size.x, 0.1, size.y), m_ceiling, false, null, 1.5)
+	_wall(false, z_south - T * 0.5, x0, x1, doors.get("s", []), wall_mat, height, over_doors, base_y)
+	_wall(false, z_north + T * 0.5, x0, x1, doors.get("n", []), wall_mat, height, over_doors, base_y)
+	_wall(true, x0 + T * 0.5, z_north + T, z_south - T, doors.get("w", []), wall_mat, height, over_doors, base_y)
+	_wall(true, x1 - T * 0.5, z_north + T, z_south - T, doors.get("e", []), wall_mat, height, over_doors, base_y)
 
 
 func _wall(along_z: bool, fixed: float, a: float, b: float, gaps: Array, wall_mat: Material,
-		height: float, lintels: bool) -> void:
+		height: float, lintels: bool, base_y := 0.0) -> void:
 	var sorted := gaps.duplicate()
 	sorted.sort_custom(func(p, q): return p[0] < q[0])
 	var cursor := a
 	for g in sorted:
 		var g0 := clampf(g[0] - g[1] * 0.5, a, b)
 		var g1 := clampf(g[0] + g[1] * 0.5, a, b)
-		_wall_piece(along_z, fixed, cursor, g0, 0.0, height, wall_mat)
+		_wall_piece(along_z, fixed, cursor, g0, base_y, base_y + height, wall_mat)
 		if lintels:
-			_wall_piece(along_z, fixed, g0, g1, DOOR_H, height, wall_mat)
+			_wall_piece(along_z, fixed, g0, g1, base_y + DOOR_H, base_y + height, wall_mat)
 		cursor = g1
-	_wall_piece(along_z, fixed, cursor, b, 0.0, height, wall_mat)
+	_wall_piece(along_z, fixed, cursor, b, base_y, base_y + height, wall_mat)
 
 
 func _wall_piece(along_z: bool, fixed: float, a: float, b: float, y0: float, y1: float, wall_mat: Material) -> void:
