@@ -1,9 +1,13 @@
 extends Node
-## TEMPORARY (reworked in build step 4). Hallucinations: shake, loud sound, chasing monster, panic, waking in bed.
+## Hallucinations at high withdrawal: the screen shakes, a loud sound plays and a monster
+## chases the player. Survive until it fades - or get caught: panic, and you wake up in bed.
+## Never while under the influence; taking a pill makes an active one vanish.
 
 const Monster := preload("res://scripts/monster.gd")
 const Audio := preload("res://scripts/audio.gd")
 const Player := preload("res://scripts/player.gd")
+
+signal caught_player   # step 5: a day passes
 
 var player: Player
 var bed_spawn: Transform3D
@@ -28,6 +32,7 @@ func _ready() -> void:
 	_sound.bus = Settings.LOUD_BUS
 	_sound.volume_db = Config.LOUD_SOUND_DB
 	add_child(_sound)
+	Withdrawal.pill_taken.connect(_on_pill_taken)
 
 
 func _process(delta: float) -> void:
@@ -38,10 +43,12 @@ func _process(delta: float) -> void:
 			if _spawn_delay <= 0.0:
 				_spawn_monster()
 		if _time_left <= 0.0:
-			_end()
+			_end("It's gone. Was it ever there?")
+			Withdrawal.hallucination_survived.emit()
 	elif not panicking:
 		_cooldown -= delta
-		if _cooldown <= 0.0 and Withdrawal.meter >= Config.HALLUCINATION_THRESHOLD:
+		if _cooldown <= 0.0 and Withdrawal.state == "" and not Withdrawal.is_influenced() \
+				and Withdrawal.meter >= Config.HALLUCINATION_THRESHOLD:
 			var t := inverse_lerp(Config.HALLUCINATION_THRESHOLD, Config.METER_MAX, Withdrawal.meter)
 			var chance := lerpf(Config.HALLUCINATION_CHANCE_PER_SEC, Config.HALLUCINATION_CHANCE_AT_MAX, t)
 			if randf() < chance * delta:
@@ -53,6 +60,7 @@ func start() -> void:
 	if active or panicking:
 		return
 	active = true
+	Withdrawal.state = "hallucination"
 	_time_left = Config.HALLUCINATION_DURATION + Withdrawal.addiction * Config.HALLUCINATION_DURATION_PER_ADDICTION
 	_spawn_delay = Config.MONSTER_SPAWN_DELAY
 	_sound.play()
@@ -78,13 +86,19 @@ func _remove_monster() -> void:
 	_monster = null
 
 
-## The player survived the hallucination.
-func _end() -> void:
+func _end(message: String) -> void:
 	active = false
+	Withdrawal.state = ""
 	_sound.stop()
 	_remove_monster()
 	_cooldown = Config.HALLUCINATION_COOLDOWN
-	Withdrawal.post_message("It's gone. Was it ever there?")
+	if message != "":
+		Withdrawal.post_message(message)
+
+
+func _on_pill_taken() -> void:
+	if active:
+		_end("")
 
 
 func _on_caught() -> void:
@@ -111,12 +125,14 @@ func _wake_up() -> void:
 	player.velocity = Vector3.ZERO
 	player.reset_look()
 	Withdrawal.meter = Config.CAUGHT_METER_AFTER
-	Withdrawal.post_message("You wake up in your bed. The sheets are soaked with sweat. You still have what you found.")
+	caught_player.emit()
+	Withdrawal.post_message("You wake up in your bed. The sheets are soaked with sweat. It's morning.")
 
 
 func _finish_panic() -> void:
 	panicking = false
 	player.frozen = false
+	Withdrawal.state = ""
 	_cooldown = Config.HALLUCINATION_COOLDOWN
 
 
@@ -126,9 +142,11 @@ func _update_effects(delta: float) -> void:
 		target = 1.0
 	else:
 		target = clampf(inverse_lerp(Config.SYMPTOM_START, Config.METER_MAX, Withdrawal.meter), 0.0, 1.0) * 0.25
+		if Withdrawal.is_influenced():
+			target = 0.0
 	_intensity = move_toward(_intensity, target, delta * 1.5)
 
-	player.shake = Config.SHAKE_STRENGTH * _intensity if (active or panicking) else 0.0
+	player.set_shake("hallucination", Config.SHAKE_STRENGTH * _intensity if (active or panicking) else 0.0)
 	post_material.set_shader_parameter("hallucination", _intensity)
 	post_material.set_shader_parameter("wobble", _intensity * (1.0 if Settings.screen_shake else 0.25))
 	post_material.set_shader_parameter("fade", fade)

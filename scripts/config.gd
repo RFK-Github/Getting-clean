@@ -145,31 +145,51 @@ const PANTS_COLOR := Color(0.2, 0.24, 0.34)
 const SHOE_COLOR := Color(0.12, 0.11, 0.1)
 const HAIR_COLOR := Color(0.2, 0.15, 0.11)
 
-# ---------- Withdrawal and addiction (temporary, reworked in build step 4) ----------
+# ---------- Withdrawal meter and addiction ----------
 const METER_MAX := 100.0
 const METER_START := 20.0
-const METER_RISE_PER_SEC := 0.9              # base rise per second
+const METER_RISE_PER_SEC := 0.5              # base rise per second without drugs
 const ADDICTION_RISE_MULTIPLIER := 0.6       # rise = base * (1 + addiction * this)
 const SYMPTOM_START := 50.0                  # above this, faint visual symptoms begin
 
-# ---------- Pills ----------
-const PILL_METER_REDUCTION := 45.0
-const PILL_ADDICTION_GAIN := 1.0
+# ---------- Drugs (pills) ----------
+const PILL_METER_REDUCTION := 45.0           # instant relief
+const PILL_ADDICTION_GAIN := 1.0             # each pill: withdrawal rises faster afterwards
+const INFLUENCE_DURATION := 120.0            # seconds "under the influence": no episodes or hallucinations
+const INFLUENCE_NUMB := 0.7                  # how grey/blurred/muffled the world gets (0-1)
+const INFLUENCE_MUFFLE_HZ := 900.0           # low-pass cutoff on all sound at full influence
 
-# ---------- Hallucination ----------
+# ---------- Withdrawal episode (headache, grab head, knees, flashback) ----------
+const EPISODE_THRESHOLD := 50.0              # meter level where episodes can start
+const EPISODE_CHANCE_PER_SEC := 0.1
+const EPISODE_FIRST_COOLDOWN := 20.0         # seconds after a level starts
+const EPISODE_COOLDOWN := 45.0               # seconds between episodes
+const EPISODE_BUILD_TIME := 2.5              # headache builds, you can still move
+const EPISODE_GRAB_TIME := 2.0               # grabbing and shaking the head, no control
+const EPISODE_KNEEL_TIME := 2.5              # on the knees (the flashback plays here in step 6)
+const EPISODE_RISE_TIME := 1.2               # getting back up
+const EPISODE_METER_DROP := 20.0             # the wave passes: withdrawal drops this much
+const EPISODE_SHAKE := 0.03
+const KNEEL_DROP := 0.75                     # how far the camera drops on the knees (m)
+const HEAD_SHAKE_ANGLE := 0.18               # radians the head swings side to side
+const HEAD_SHAKE_SPEED := 14.0
+const TINNITUS_DB := -16.0                   # loud bus
+const HEARTBEAT_DB := -2.0
+
+# ---------- Hallucination (monster) ----------
 const HALLUCINATION_THRESHOLD := 70.0
 const HALLUCINATION_CHANCE_PER_SEC := 0.12   # chance per second at the threshold
 const HALLUCINATION_CHANCE_AT_MAX := 0.6     # chance per second at full meter
-const HALLUCINATION_COOLDOWN := 12.0
-const HALLUCINATION_DURATION := 15.0         # seconds you must survive
+const HALLUCINATION_COOLDOWN := 15.0
+const HALLUCINATION_DURATION := 12.0         # seconds you must survive
 const HALLUCINATION_DURATION_PER_ADDICTION := 4.0
 const SHAKE_STRENGTH := 0.05
 const MONSTER_SPAWN_DELAY := 1.5
 const MONSTER_SPAWN_DISTANCE := 7.0
-const MONSTER_SPEED := 2.2
+const MONSTER_SPEED := 2.75                  # a little faster than walking, slower than sprinting
 const MONSTER_SPEED_PER_ADDICTION := 0.3
 const MONSTER_CATCH_DISTANCE := 0.9
-const CAUGHT_METER_AFTER := 45.0
+const CAUGHT_METER_AFTER := 45.0             # withdrawal when you wake up in bed
 
 # ---------- Sound (hospital) ----------
 const LOUD_SOUND_DB := -6.0                  # hallucination sound (bus "Loud")

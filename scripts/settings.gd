@@ -64,7 +64,20 @@ func _setup_display() -> void:
 		win.move_to_center()
 
 
+## 0..1: muffles all sound with a low-pass filter on the Master bus (under the influence).
+func set_muffle(amount: float) -> void:
+	var on := amount > 0.01
+	if AudioServer.is_bus_effect_enabled(0, 0) != on:
+		AudioServer.set_bus_effect_enabled(0, 0, on)
+	if on:
+		var lp := AudioServer.get_bus_effect(0, 0) as AudioEffectLowPassFilter
+		lp.cutoff_hz = lerpf(20000.0, Config.INFLUENCE_MUFFLE_HZ, clampf(amount / Config.INFLUENCE_NUMB, 0.0, 1.0))
+
+
 func _setup_audio_bus() -> void:
+	if AudioServer.get_bus_effect_count(0) == 0:
+		AudioServer.add_bus_effect(0, AudioEffectLowPassFilter.new())
+		AudioServer.set_bus_effect_enabled(0, 0, false)
 	if AudioServer.get_bus_index(LOUD_BUS) != -1:
 		return
 	AudioServer.add_bus()

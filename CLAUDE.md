@@ -20,6 +20,9 @@ Godot 4 project: first-person psychological horror game about addiction, PS1 sty
 - `scripts/props/`: reusable scripted props (vehicles, fog figure, mirror)
 - `scripts/npc.gd`: non-hostile NPCs (doctor/nurse/patient/therapist), waypoints or stand/sit/lie
 - `Game.show_text(title, body)`: reading panel (clipboard, schedule board, later letters)
+- `scripts/episode.gd` (withdrawal episode, `flashback_point` signal for step 6) and `scripts/hallucination.gd`
+  (monster). Only one runs at a time via `Withdrawal.state`; neither while `Withdrawal.is_influenced()`.
+  Signals for step 5 live on Withdrawal (`episode_survived`, `pill_taken`, ...) and `hallucination.caught_player`.
 - `shaders/psx.gdshader` (vertex jitter, affine), `shaders/post.gdshader` (tint, dither, effects)
 - `scripts/textures.gd`, `scripts/audio.gd`: placeholder textures/sounds generated in code
 

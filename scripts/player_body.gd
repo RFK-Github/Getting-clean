@@ -22,6 +22,7 @@ var _arm_l: Node3D
 var _arm_r: Node3D
 var _look_lag := Vector2.ZERO
 var _action := ""
+var _grab := 0.0
 
 
 func setup(camera: Camera3D) -> void:
@@ -54,8 +55,18 @@ func update_motion(delta: float, speed_ratio: float, sprinting: bool, phase: flo
 		-absf(sin(phase * 0.5)) * sway + _look_lag.y,
 		0.0)
 	var pump := sin(phase * 0.5) * (0.5 if sprinting else 0.12) * moving
-	_arm_l.rotation.x = pump
-	_arm_r.rotation.x = -pump
+
+	# "grab_head": both hands come up into view and press against the head, trembling.
+	_grab = move_toward(_grab, 1.0 if _action == "grab_head" else 0.0, delta * 3.0)
+	var g := smoothstep(0.0, 1.0, _grab)
+	var tremble := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * 0.006 * g
+	for side in [-1.0, 1.0]:
+		var arm: Node3D = _arm_l if side < 0.0 else _arm_r
+		var walk_pos := Vector3(side * 0.24, -0.3, -0.05)
+		var grab_pos := Vector3(side * 0.2, -0.32, -0.12)
+		arm.position = walk_pos.lerp(grab_pos, g) + tremble
+		arm.rotation.x = lerpf(-side * pump, deg_to_rad(55), g)
+		arm.rotation.y = lerpf(0.0, side * deg_to_rad(-18), g)
 
 
 ## Mouse movement in screen pixels, so the arms can lag slightly behind.
@@ -64,7 +75,8 @@ func add_look_delta(rel: Vector2) -> void:
 	_look_lag = _look_lag.limit_length(0.05)
 
 
-## Hook for body actions (e.g. "grab_head", "kneel" in build step 4). Not implemented yet.
+## Body actions: "grab_head" (withdrawal episode) or "" for normal. Kneeling is done by the
+## player (camera height). With an imported model, an animation of the same name is played.
 func play_action(action_name: String) -> void:
 	_action = action_name
 

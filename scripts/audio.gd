@@ -106,6 +106,33 @@ static func sting() -> AudioStreamWAV:
 	return w
 
 
+## Ringing in the ears: high, slightly beating tone (loop).
+static func tinnitus() -> AudioStreamWAV:
+	var n := RATE * 3
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		samples[i] = sin(TAU * 3800.0 * t) * 0.2 + sin(TAU * 3803.0 * t) * 0.15 + sin(TAU * 1900.0 * t) * 0.05
+	return _make(samples)
+
+
+## Heavy heartbeat, lub-dub at 75 bpm (loop).
+static func heartbeat() -> AudioStreamWAV:
+	var n := int(RATE * 0.8)
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	for i in n:
+		var t := float(i) / RATE
+		var s := 0.0
+		for beat in [[0.0, 1.0], [0.22, 0.7]]:
+			var dt: float = t - beat[0]
+			if dt >= 0.0 and dt < 0.15:
+				s += sin(TAU * 50.0 * dt) * exp(-dt * 30.0) * beat[1]
+		samples[i] = s * 0.9
+	return _make(samples)
+
+
 static func _make(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var data := PackedByteArray()
 	data.resize(samples.size() * 2)

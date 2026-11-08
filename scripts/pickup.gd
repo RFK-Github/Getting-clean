@@ -1,7 +1,7 @@
 extends Area3D
 ## Something the player can interact with (E).
 ## kind:
-##   "pill"   - pill bottle (lowers withdrawal, raises addiction)
+##   "pill"   - pill bottle (item_id = unique id; message "" = Withdrawal.pill_message())
 ##   "item"   - one of the personal items (item_id)
 ##   "locked" - shows `message` (locked doors, the exit doctor for now)
 ##   "door"   - goes to target_level
@@ -32,8 +32,8 @@ func _ready() -> void:
 func interact() -> void:
 	match kind:
 		"pill":
-			Withdrawal.take_pill()
-			Withdrawal.post_message(message)
+			Withdrawal.take_pill(item_id)
+			Withdrawal.post_message(message if message != "" else Withdrawal.pill_message())
 			queue_free()
 		"item":
 			Withdrawal.add_item(item_id)

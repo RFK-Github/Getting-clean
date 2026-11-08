@@ -19,7 +19,7 @@ func build() -> void:
 ## Environment and rules for this level, read by main.gd. Keys (all optional):
 ## fog_mode ("exponential" | "depth"), fog_color, fog_density, fog_depth_begin, fog_depth_end,
 ## fog_depth_curve, fog_sun_scatter, ambient_color, ambient_energy, tint, tint_strength,
-## camera_far, flashlight_on, hallucinations, navigation, withdrawal_rate, start_message
+## camera_far, flashlight_on, hallucinations, episodes, navigation, withdrawal_rate, start_message
 func get_settings() -> Dictionary:
 	return {}
 
@@ -106,9 +106,13 @@ func sign_text(text: String, pos: Vector3, rot_y: float, font_size := 24,
 	return l
 
 
-func pill_bottle(pos: Vector3, message: String) -> Node3D:
+## A pill bottle. id must be unique; once taken it never comes back. message "" = default lines.
+func pill_bottle(pos: Vector3, id: String, message := "") -> Node3D:
+	if id in Withdrawal.taken_pickups:
+		return null
 	var p := Pickup.new()
 	p.kind = "pill"
+	p.item_id = id
 	p.prompt = "Pill bottle"
 	p.message = message
 	p.position = pos

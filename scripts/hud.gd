@@ -79,6 +79,8 @@ func _process(delta: float) -> void:
 	var high := Withdrawal.meter >= Config.HALLUCINATION_THRESHOLD
 	if high and fmod(Time.get_ticks_msec() / 1000.0 * 5.0, 1.0) < 0.3:
 		c = Color(0.9, 0.85, 0.7)
+	if Withdrawal.is_influenced():
+		c = c.lerp(Color(0.45, 0.45, 0.45), 0.8)  # numb: the meter goes grey too
 	_fill.color = c
 	_meter_label.offset_left = 16 + (randi_range(-1, 1) if high else 0)
 

@@ -99,7 +99,7 @@ func build() -> void:
 	for p in [Vector3(-2.5, 0, -8), Vector3(2.0, 0, -18), Vector3(-1.5, 0, -66), Vector3(2.5, 0, -127)]:
 		_steam(p)
 
-	pill_bottle(Vector3(8.3, 0.12, -28.6), PILL_MESSAGE)
+	pill_bottle(Vector3(8.3, 0.12, -28.6), "street", PILL_MESSAGE)
 
 	var figure := FogFigure.new()
 	figure.position = Vector3(0.6, 0, -82)
@@ -144,7 +144,7 @@ func _process(delta: float) -> void:
 			var d := absf(tr.global_position.z - player.global_position.z) - Config.TRAIN_CARS * 7.0
 			if d < Config.TRAIN_SHAKE_DISTANCE:
 				shake = maxf(shake, Config.TRAIN_SHAKE * (1.0 - maxf(d, 0.0) / Config.TRAIN_SHAKE_DISTANCE))
-		player.set("shake", shake)
+		player.call("set_shake", "train", shake)
 
 
 # ------------------------------------------------------------------ Materials

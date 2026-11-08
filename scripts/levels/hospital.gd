@@ -57,7 +57,8 @@ func get_settings() -> Dictionary:
 		"tint_strength": Config.HOSPITAL_TINT_STRENGTH,
 		"camera_far": Config.HOSPITAL_CAMERA_FAR,
 		"flashlight_on": false,
-		"hallucinations": false,   # the monster comes back in build step 4
+		"hallucinations": true,
+		"episodes": true,
 		"navigation": true,
 		"withdrawal_rate": Config.HOSPITAL_WITHDRAWAL_RATE,
 		"start_message": "The nurse at reception hands you a wristband. \"Room 12. West hall. Try to get some rest.\"" if arrived
@@ -83,6 +84,7 @@ func build() -> void:
 	_pool()
 	_courtyard()
 	_lawn()
+	_hidden_pills()
 
 	var hum := AudioStreamPlayer.new()
 	hum.stream = Audio.hum()
@@ -451,6 +453,15 @@ func _lawn() -> void:
 	for p in [Vector3(-15, 0, -81), Vector3(-40, 0, -55), Vector3(-26, 0, -82)]:
 		tree(p)
 	npc("patient", Vector3(gx + 0.6, 0, -68), -PI * 0.5, ["Best keeper in this place. Only keeper, but still.", "Come take a penalty when the lawn is open."], "")
+
+
+## Drugs hidden around the center. Each id is taken only once.
+func _hidden_pills() -> void:
+	pill_bottle(Vector3(-24.0, 0, -22.7), "room11_floor")        # rolled under the next bed
+	pill_bottle(Vector3(-10.2, 1.0, -31.5), "med_cart")          # on the medication cart
+	pill_bottle(Vector3(16.3, 0, -44.7), "behind_tv")            # in the corner by the common room TV
+	pill_bottle(Vector3(38.9, 0, -29.2), "lifeguard_chair")      # at the foot of the lifeguard chair
+	pill_bottle(Vector3(-25.5, 0, -81.3), "lawn_tree")           # in the grass by a tree
 
 
 # ------------------------------------------------------------------ Text

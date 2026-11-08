@@ -10,8 +10,12 @@ var head: Node3D
 var camera: Camera3D
 var flashlight: SpotLight3D
 var body: PlayerBody
-var shake := 0.0      # set by hallucinations
-var frozen := false   # no control (panic, later: withdrawal episodes)
+var frozen := false   # no control (panic, withdrawal episodes)
+var kneel := 0.0      # 0 = standing, 1 = on the knees (withdrawal episode)
+var head_shake := 0.0 # 0..1 shaking the head side to side (withdrawal episode)
+
+var _shakes := {}     # screen shake per source ("train", "hallucination", "episode")
+var _time := 0.0
 
 var stamina: float = Config.STAMINA_MAX
 var max_stamina: float = Config.STAMINA_MAX
@@ -68,6 +72,11 @@ func _ready() -> void:
 func reset_look() -> void:
 	_pitch = 0.0
 	head.rotation.x = 0.0
+
+
+## Screen shake from one source. The strongest source wins. 0 = off.
+func set_shake(source: String, amount: float) -> void:
+	_shakes[source] = amount
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -130,17 +139,22 @@ func _update_stamina(delta: float, input: Vector2) -> void:
 
 
 func _process(delta: float) -> void:
-	var s := shake if Settings.screen_shake else 0.0
+	_time += delta
+	var s := 0.0
+	if Settings.screen_shake:
+		for v in _shakes.values():
+			s = maxf(s, v)
 	var bob_amount := Config.HEAD_BOB * (Config.SPRINT_BOB_MULTIPLIER if sprinting else 1.0)
 	var bob := sin(_bob) * bob_amount
-	if s > 0.0:
-		camera.h_offset = randf_range(-s, s)
-		camera.v_offset = bob + randf_range(-s, s)
-		camera.rotation.z = randf_range(-s, s) * 0.6
-	else:
-		camera.h_offset = 0.0
-		camera.v_offset = bob
-		camera.rotation.z = 0.0
+	camera.h_offset = randf_range(-s, s) if s > 0.0 else 0.0
+	camera.v_offset = bob + (randf_range(-s, s) if s > 0.0 else 0.0)
+	camera.rotation.z = (randf_range(-s, s) * 0.6 if s > 0.0 else 0.0) + kneel * 0.08
+
+	# Withdrawal episode: drop to the knees and shake the head (gentler with screen shake off).
+	head.position.y = Config.PLAYER_HEIGHT - kneel * Config.KNEEL_DROP
+	body.position.y = -kneel * Config.KNEEL_DROP
+	var swing := Config.HEAD_SHAKE_ANGLE * (1.0 if Settings.screen_shake else 0.3)
+	head.rotation.y = sin(_time * Config.HEAD_SHAKE_SPEED) * swing * head_shake
 	var target_fov := Config.FOV + (Config.SPRINT_FOV_KICK if sprinting else 0.0)
 	camera.fov = lerpf(camera.fov, target_fov, clampf(delta * 6.0, 0.0, 1.0))
 

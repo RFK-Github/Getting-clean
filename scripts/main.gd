@@ -1,10 +1,11 @@
 extends Node3D
 ## Assembles the current level (Game.current_level): environment/fog, level geometry,
-## navigation, player, post-processing, HUD, hallucinations and pause menu.
+## navigation, player, post-processing, HUD, withdrawal episodes, hallucinations and pause menu.
 
 const Player := preload("res://scripts/player.gd")
 const Hud := preload("res://scripts/hud.gd")
 const Hallucination := preload("res://scripts/hallucination.gd")
+const Episode := preload("res://scripts/episode.gd")
 const PauseMenu := preload("res://scripts/pause_menu.gd")
 const POST_SHADER := preload("res://shaders/post.gdshader")
 
@@ -13,8 +14,11 @@ const LEVELS := {
 	"hospital": preload("res://scripts/levels/hospital.gd"),
 }
 
+var _post: ShaderMaterial
+
 
 func _ready() -> void:
+	Withdrawal.state = ""  # nothing carries over mid-episode from a previous level
 	var level_script: GDScript = LEVELS.get(Game.current_level, LEVELS["philadelphia"])
 	var level: Node3D = level_script.new()
 	var s: Dictionary = level.get_settings()
@@ -39,6 +43,7 @@ func _ready() -> void:
 	Withdrawal.rate_multiplier = s.get("withdrawal_rate", 1.0)
 
 	var post := _make_post_effect(s)
+	_post = post
 
 	var hud := Hud.new()
 	hud.player = player
@@ -52,11 +57,22 @@ func _ready() -> void:
 		hallucination.post_material = post
 		add_child(hallucination)
 
+	if s.get("episodes", false):
+		var episode := Episode.new()
+		episode.player = player
+		episode.post_material = post
+		add_child(episode)
+
 	add_child(PauseMenu.new())
 
 	var msg: String = s.get("start_message", "")
 	if msg != "":
 		Withdrawal.post_message(msg)
+
+
+func _process(_delta: float) -> void:
+	# Under the influence: grey, soft, muffled (sound is done by Withdrawal/Settings).
+	_post.set_shader_parameter("numb", Withdrawal.influence_strength())
 
 
 func _make_environment(s: Dictionary) -> void:
