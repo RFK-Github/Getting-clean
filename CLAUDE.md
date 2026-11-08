@@ -14,7 +14,8 @@ Godot 4 project: first-person psychological horror game about addiction, PS1 sty
 
 ## Layout
 - `scripts/config.gd`, `settings.gd`, `withdrawal.gd`, `game.gd`, `recovery.gd`: autoloads (Config, Settings, Withdrawal, Game, Recovery)
-- `Recovery`: Recovery meter (only shown on the clipboard), days until the wife visits, `next_day()`, flashbacks seen, letters read. `Game.game_over()` / `good_ending()` are placeholder screens until step 10
+- `Recovery`: Recovery meter (only shown on the clipboard), days until the wife visits, `next_day()`, flashbacks seen, letters read. `Game.game_over()` / `good_ending()` play final cutscenes B / A (`scripts/cutscenes/ending_*.gd`) and show an end card
+- `scenes/menu.tscn` (`scripts/menu.gd`) is the main scene; `Game.new_game()` / `Game.to_menu()` switch between it and `scenes/main.tscn`
 - `scripts/main.gd`: builds whichever level `Game.current_level` names (see `LEVELS`); `Game.change_level()` fades and reloads
 - `scripts/levels/`: levels built from boxes in code, all extend `level_base.gd` (`build()`, `get_settings()`, `spawn`)
   - `philadelphia.gd`: level 1. `hospital.gd`: level 2 (map of all rooms at the top of the file)
@@ -35,4 +36,12 @@ Godot 4 project: first-person psychological horror game about addiction, PS1 sty
 ```
 & "C:\Users\Rune\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64.exe" --headless --path C:\horror-spil --import
 & "C:\Users\Rune\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64.exe" --headless --path C:\horror-spil --quit-after 300
+```
+
+## Export (macOS + Web)
+Presets are in `export_presets.cfg` (macOS universal, ad-hoc signed; Web without threads so it runs on any static host).
+Export templates for Godot 4.7.2 must be installed first (Editor → Manage Export Templates → Download), then:
+```
+& "C:\Users\Rune\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64.exe" --headless --path C:\horror-spil --export-release "Web" build/web/index.html
+& "C:\Users\Rune\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64.exe" --headless --path C:\horror-spil --export-release "macOS" build/macos/GettingClean.zip
 ```

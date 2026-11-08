@@ -57,10 +57,18 @@ func _ready() -> void:
 	resume.pressed.connect(close)
 	box.add_child(resume)
 
-	var quit := Button.new()
-	quit.text = "Quit"
-	quit.pressed.connect(func(): get_tree().quit())
-	box.add_child(quit)
+	var menu := Button.new()
+	menu.text = "Main menu"
+	menu.pressed.connect(func():
+		_root.visible = false
+		Game.to_menu())
+	box.add_child(menu)
+
+	if not OS.has_feature("web"):   # browsers can't quit
+		var quit := Button.new()
+		quit.text = "Quit"
+		quit.pressed.connect(func(): get_tree().quit())
+		box.add_child(quit)
 
 	_root.visible = false
 

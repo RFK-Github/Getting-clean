@@ -161,52 +161,84 @@ func _build_dialogue(layer: CanvasLayer) -> void:
 	box.add_child(_dialogue_choices)
 
 
-# ------------------------------------------------------------------ Endings
-# Placeholder text screens. Build step 10 replaces them with final cutscenes A and B.
+# ------------------------------------------------------------------ Endings and menu
 
-## Final cutscene B: the countdown ran out.
+const EndingGood := preload("res://scripts/cutscenes/ending_good.gd")
+const EndingBad := preload("res://scripts/cutscenes/ending_bad.gd")
+const MENU_SCENE := "res://scenes/menu.tscn"
+const GAME_SCENE := "res://scenes/main.tscn"
+
+
+## Final cutscene B: the countdown ran out. "She came. You weren't ready. She left."
 func game_over() -> void:
-	_show_ending("She came.\n\nYou weren't ready.\n\nShe left.")
+	await _ending_sequence(EndingBad, "GAME OVER")
 
 
 ## Final cutscene A: Recovery reached 100 and the doctor lets you go.
 func good_ending() -> void:
-	_show_ending("\"You're ready.\"\n\nYou walk out into the daylight.\nShe is waiting for you.")
+	await _ending_sequence(EndingGood, "THE END")
 
 
 func is_ending() -> bool:
 	return _ending.visible
 
 
-func _show_ending(text: String) -> void:
-	if _busy:
+func _ending_sequence(scene_script: GDScript, title: String) -> void:
+	if _busy or in_cutscene:
 		return
 	_busy = true
 	var out := create_tween()
-	out.tween_property(_fade, "color:a", 1.0, Config.LEVEL_FADE_TIME * 2.0)
+	out.tween_property(_fade, "color:a", 1.0, Config.LEVEL_FADE_TIME)
 	await out.finished
+	in_cutscene = true
+	var p := CutscenePlayer.new()
+	add_child(p)
+	_fade.color.a = 0.0
+	await p.play(scene_script, true)
+	in_cutscene = false
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_ending_text.text = text
+	_ending_text.text = title + "\n\n\n" + Config.SUPPORT_TEXT
 	_ending.visible = true
-	_fade.color.a = 0.0  # the fade layer sits on top of the ending screen
+	p.queue_free()
 	_busy = false
 
 
-## Start the whole game over from the first level.
-func restart() -> void:
+## Fresh state and the first level (from the main menu).
+func new_game() -> void:
+	_reset_state()
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	await _fade_to(1.0)
+	get_tree().change_scene_to_file(GAME_SCENE)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_fade_to(0.0)
+
+
+## Back to the main menu (end card, or "Main menu" in the pause menu).
+func to_menu() -> void:
 	_ending.visible = false
+	_panel.visible = false
+	_reset_state()
+	get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	get_tree().change_scene_to_file(MENU_SCENE)
+	await get_tree().process_frame
+	_fade.color.a = 0.0
+
+
+func _reset_state() -> void:
 	Withdrawal.reset()
 	Recovery.reset()
 	wake_message = ""
 	previous_level = ""
 	current_level = Config.START_LEVEL
-	get_tree().paused = false
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	get_tree().reload_current_scene()
-	await get_tree().process_frame
-	var back := create_tween()
-	back.tween_property(_fade, "color:a", 0.0, Config.LEVEL_FADE_TIME)
+
+
+func _fade_to(alpha: float) -> void:
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", alpha, Config.LEVEL_FADE_TIME)
+	await tw.finished
 
 
 func _build_ending(layer: CanvasLayer) -> void:
@@ -226,10 +258,12 @@ func _build_ending(layer: CanvasLayer) -> void:
 	center.add_child(box)
 	_ending_text = Label.new()
 	_ending_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ending_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_ending_text.custom_minimum_size = Vector2(520, 0)
 	_ending_text.add_theme_color_override("font_color", Color(0.85, 0.85, 0.82))
 	box.add_child(_ending_text)
 	var hint := Label.new()
-	hint.text = "[E] Start again"
+	hint.text = "[E] Main menu"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_color_override("font_color", Color(0.45, 0.45, 0.45))
 	hint.add_theme_font_size_override("font_size", Config.UI_FONT_SIZE_SMALL)
@@ -267,7 +301,7 @@ func _input(event: InputEvent) -> void:
 		return
 	if _ending.visible:
 		if event.is_action_pressed("interact"):
-			restart()
+			to_menu()
 		get_viewport().set_input_as_handled()
 		return
 	if not _panel.visible:

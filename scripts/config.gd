@@ -9,6 +9,15 @@ const UI_FONT_SIZE := 16
 const UI_FONT_SIZE_SMALL := 12
 const FOV := 70.0
 
+# ---------- Title, content note, support ----------
+const GAME_TITLE := "Getting Clean"
+const CONTENT_NOTE := "This game deals with addiction, withdrawal, grief and the death of a child in a car accident."
+const SUPPORT_TEXT := "If you or someone you know is struggling with addiction, help is available.\nIn the US: SAMHSA National Helpline, 1-800-662-4357 (free, confidential, 24/7).\nElsewhere: talk to a doctor or a local support line."
+
+# ---------- Main menu ----------
+const MENU_FOG_DENSITY := 0.12
+const MENU_CAMERA_DRIFT := 0.25              # m/s the camera creeps down the corridor
+
 # ---------- Game flow ----------
 const START_LEVEL := "philadelphia"          # "philadelphia" or "hospital"
 const LEVEL_FADE_TIME := 1.0                 # seconds to fade out/in between levels

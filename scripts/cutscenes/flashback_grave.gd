@@ -34,49 +34,7 @@ func build() -> void:
 	cam.far = 80
 	add_child(cam)
 
-	var grass := mat("grass", Color(0.85, 0.95, 0.85), 0.5)
-	var stone := mat("concrete", Color(0.75, 0.76, 0.78), 1.0)
-	box(Vector3(0, -0.05, -10), Vector3(60, 0.1, 50), grass, false, null, 3.0)
-
-	# The other graves
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
-	for row in 4:
-		for col in 7:
-			var x := -9.0 + col * 3.0 + rng.randf_range(-0.4, 0.4)
-			var z := -5.0 - row * 3.5
-			if absf(x) < 1.5 and row == 0:
-				continue
-			var g := box(Vector3(x, 0.4, z), Vector3(0.6, 0.8, 0.15), stone, false)
-			g.rotation.z = rng.randf_range(-0.06, 0.06)
-	# Bare trees
-	var bark := mat("wood", Color(0.6, 0.6, 0.6), 1.0)
-	for p in [Vector3(-7, 0, -3), Vector3(8, 0, -9), Vector3(-12, 0, -16)]:
-		box(p + Vector3(0, 2.5, 0), Vector3(0.3, 5.0, 0.3), bark, false)
-		var branch := box(p + Vector3(0.6, 4.0, 0), Vector3(0.12, 1.8, 0.12), bark, false)
-		branch.rotation.z = -0.7
-
-	# Her stone
-	box(STONE + Vector3(0, -0.1, 0), Vector3(0.9, 1.0, 0.18), stone, false)
-	box(Vector3(0, 0.06, -1.6), Vector3(1.1, 0.12, 0.45), stone, false)
-	var ink := Color(0.22, 0.22, 0.24)
-	sign_text("BELOVED DAUGHTER", STONE + Vector3(0, 0.22, 0.095), 0, 30, ink)
-	sign_text("Forever seven years old", STONE + Vector3(0, 0.06, 0.095), 0, 18, ink)
-	sign_text("We will always hold your hand", STONE + Vector3(0, -0.1, 0.095), 0, 14, ink)
-
-	# The teddy bear and flowers at the foot of the stone
-	var fur := mat("fabric", Color(1.4, 1.0, 0.65), 3.0, false)
-	var bear := Node3D.new()
-	bear.position = Vector3(-0.25, 0.12, -1.3)
-	bear.rotation.y = 0.3
-	add_child(bear)
-	box(Vector3(0, 0.1, 0), Vector3(0.17, 0.2, 0.13), fur, false, bear)
-	box(Vector3(0, 0.26, 0), Vector3(0.14, 0.13, 0.12), fur, false, bear)
-	for sx in [-0.06, 0.06]:
-		box(Vector3(sx, 0.34, 0), Vector3(0.04, 0.04, 0.03), fur, false, bear)
-	for i in 5:
-		var c: Color = [Color(0.85, 0.85, 0.8), Color(0.9, 0.6, 0.65), Color(0.9, 0.85, 0.4)][i % 3]
-		box(Vector3(0.12 + i * 0.06, 0.16, -1.32 + (i % 2) * 0.05), Vector3(0.05, 0.05, 0.05), mat("plain", c, 1.0, false), false)
+	grave_set(Vector3.ZERO)
 
 	# His wife, a little apart, under an umbrella
 	_wife = figure(Color(0.12, 0.12, 0.14), Color(0.1, 0.1, 0.12), Color(0.85, 0.7, 0.58), Color(0.35, 0.22, 0.12))

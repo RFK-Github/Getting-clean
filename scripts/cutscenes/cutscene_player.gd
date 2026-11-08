@@ -14,7 +14,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
-func play(scene_script: GDScript) -> void:
+## end_black: stay black and paused afterwards (the endings show an end card next).
+func play(scene_script: GDScript, end_black := false) -> void:
 	var tree := get_tree()
 	tree.paused = true
 
@@ -30,7 +31,9 @@ func play(scene_script: GDScript) -> void:
 
 	_scene = scene_script.new()
 	var s: Dictionary = _scene.get_settings()
-	viewport.add_child(_scene.make_environment(s))
+	var env: WorldEnvironment = _scene.make_environment(s)
+	viewport.add_child(env)
+	_scene.world_env = env
 	viewport.add_child(_scene)
 
 	var post := ColorRect.new()
@@ -72,6 +75,7 @@ func play(scene_script: GDScript) -> void:
 	get_tree().create_timer(Config.CUTSCENE_SKIP_AFTER, true).timeout.connect(func(): _skippable = true)
 
 	await _scene.finished
+	_skippable = false
 
 	# Back to the game: fade to black, remove the scene, fade the game back in.
 	var out := create_tween()
@@ -80,6 +84,8 @@ func play(scene_script: GDScript) -> void:
 	_container.queue_free()
 	post.queue_free()
 	subtitle.queue_free()
+	if end_black:
+		return
 	tree.paused = false
 	var back := create_tween()
 	back.tween_property(_fade, "color:a", 0.0, Config.CUTSCENE_FADE_TIME)
@@ -87,7 +93,7 @@ func play(scene_script: GDScript) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if _scene == null:
+	if _scene == null or not is_instance_valid(_scene):
 		return
 	if _skippable and event.is_action_pressed("interact"):
 		_skippable = false
