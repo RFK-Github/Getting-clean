@@ -86,7 +86,7 @@ Each gives Recovery and lowers withdrawal. Showing up always gives a little; doi
 ## CHANGES AFTER PLAYTESTING
 - Withdrawal episode: after kneeling (and the flashback, if one is left) he blacks out and wakes up in his room the next day - one day passes, like being forced back to bed.
 - Withdrawal rises slightly faster. Basketball, football and talking to the nurse remove some withdrawal.
-- Taking pills removes ALL current withdrawal but raises the rate it rises at afterwards. Pill bottles return to their places when a new day starts.
+- Taking pills removes ALL current withdrawal but fills "in your system" (see below), so withdrawal rises faster afterwards. Pill bottles return to their places when a new day starts.
 - Items have a soft glint so they can be found; small items are bigger. Inventory screen ("Belongings", I / Tab) shows found items and read letters.
 - More things to use: TV, radio, light switch, tap, wardrobe, filing cabinet, books, vending machine, piano, candles, the reception phone.
 - Background music in the hospital (Music volume in settings).
@@ -97,3 +97,4 @@ Each gives Recovery and lowers withdrawal. Showing up always gives a little; doi
 - Basketball, football and swimming are all allowed under the influence.
 - Withdrawal stands still during activities (basketball, football, swimming), group therapy and conversations.
 - When withdrawal symptoms start (from 50), a ringing in the ears fades in and grows louder as it gets worse.
+- "In your system" meter (on screen above withdrawal): each pill fills it, and it slowly drains over time (one pill takes about 6 minutes). The fuller it is, the faster withdrawal rises (up to 3x). It replaces the old hidden addiction value, which never went down.

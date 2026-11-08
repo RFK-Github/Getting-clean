@@ -60,7 +60,7 @@ func start() -> void:
 		return
 	active = true
 	Withdrawal.state = "hallucination"
-	_time_left = Config.HALLUCINATION_DURATION + Withdrawal.addiction * Config.HALLUCINATION_DURATION_PER_ADDICTION
+	_time_left = Config.HALLUCINATION_DURATION + Withdrawal.system_level() * Config.HALLUCINATION_DURATION_PER_SYSTEM
 	_spawn_delay = Config.MONSTER_SPAWN_DELAY
 	_sound.play()
 
@@ -68,7 +68,7 @@ func start() -> void:
 func _spawn_monster() -> void:
 	_monster = Monster.new()
 	_monster.target = player
-	_monster.speed = Config.MONSTER_SPEED + Withdrawal.addiction * Config.MONSTER_SPEED_PER_ADDICTION
+	_monster.speed = Config.MONSTER_SPEED + Withdrawal.system_level() * Config.MONSTER_SPEED_PER_SYSTEM
 	_monster.caught.connect(_on_caught)
 	get_parent().add_child(_monster)
 	var behind := player.global_position + player.global_transform.basis.z * Config.MONSTER_SPAWN_DISTANCE

@@ -9,6 +9,7 @@ const TEXT_COLOR := Color(0.8, 0.85, 0.65)
 var player: Node  # set by main (needs stamina / max_stamina / sprinting)
 
 var _fill: ColorRect
+var _system_fill: ColorRect
 var _meter_label: Label
 var _stamina_root: Control
 var _stamina_fill: ColorRect
@@ -42,6 +43,11 @@ func _ready() -> void:
 	var ep_x := 1 + round(BAR_W * Config.EPISODE_THRESHOLD / Config.METER_MAX)   # where an episode hits
 	_rect(bar_bg, Color(0.75, 0.6, 0.35), Vector2.ZERO, Vector2(ep_x, 0), Vector2(2, 10))
 
+	# "In your system", above the withdrawal meter: fills with pills, slowly drains.
+	_label(root, "IN YOUR SYSTEM", Vector2(0, 1), Vector2(16, -84), Vector2(200, 20)).add_theme_font_size_override("font_size", Config.UI_FONT_SIZE_SMALL)
+	var sys_bg := _rect(root, Color(0.04, 0.05, 0.03), Vector2(0, 1), Vector2(16, -64), Vector2(BAR_W + 2, 8))
+	_system_fill = _rect(sys_bg, Config.SYSTEM_BAR_COLOR, Vector2.ZERO, Vector2(1, 1), Vector2(0, 6))
+
 	# Stamina, bottom centre
 	_stamina_root = _rect(root, Color(0.04, 0.05, 0.03, 0.8), Vector2(0.5, 1), Vector2(-STAMINA_W / 2 - 1, -18), Vector2(STAMINA_W + 2, 6))
 	_stamina_lost = _rect(_stamina_root, Color(0.3, 0.1, 0.08), Vector2.ZERO, Vector2(1, 1), Vector2(0, 4))
@@ -65,8 +71,7 @@ func _ready() -> void:
 	_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 	_help = _label(root, "WASD move   Shift sprint   F flashlight   E interact   I belongings   ESC menu",
-		Vector2(0.5, 1), Vector2(-260, -44), Vector2(520, 20))
-	_help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		Vector2(0, 0), Vector2(16, 50), Vector2(420, 20))
 	_help.add_theme_font_size_override("font_size", Config.UI_FONT_SIZE_SMALL)
 
 	Withdrawal.message_posted.connect(_on_message)
@@ -90,6 +95,7 @@ func _process(delta: float) -> void:
 		c = c.lerp(Color(0.45, 0.45, 0.45), 0.8)  # numb: the meter goes grey too
 	_fill.color = c
 	_meter_label.offset_left = 16 + (randi_range(-1, 1) if high else 0)
+	_system_fill.size.x = round(BAR_W * Withdrawal.system_level())
 
 	# Stamina: hidden when full, darker segment = what withdrawal has taken away
 	if player != null:

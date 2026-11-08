@@ -155,16 +155,19 @@ const PANTS_COLOR := Color(0.2, 0.24, 0.34)
 const SHOE_COLOR := Color(0.12, 0.11, 0.1)
 const HAIR_COLOR := Color(0.2, 0.15, 0.11)
 
-# ---------- Withdrawal meter and addiction ----------
+# ---------- Withdrawal meter and "in your system" ----------
 const METER_MAX := 100.0
 const METER_START := 20.0
 const METER_RISE_PER_SEC := 0.35             # base rise per second without drugs (0 to full in about 5 minutes)
-const ADDICTION_RISE_MULTIPLIER := 0.6       # rise = base * (1 + addiction * this)
+const SYSTEM_RISE_MULTIPLIER := 2.0          # withdrawal rise = base * (1 + in_system / SYSTEM_MAX * this): full = 3x as fast
 const SYMPTOM_START := 50.0                  # above this, faint visual symptoms begin
 
 # ---------- Drugs (pills) ----------
-# A pill takes away ALL current withdrawal (meter to 0) - but raises addiction (the ticker).
-const PILL_ADDICTION_GAIN := 1.0             # each pill: withdrawal rises faster afterwards
+# A pill takes away ALL current withdrawal (meter to 0) - but fills "in your system", which makes withdrawal rise faster.
+const SYSTEM_MAX := 100.0
+const PILL_SYSTEM_GAIN := 35.0               # "In your system" meter: each pill fills it this much...
+const SYSTEM_DRAIN_PER_SEC := 0.1            # ...and it slowly drains (one pill takes about 6 minutes)
+const SYSTEM_BAR_COLOR := Color(0.6, 0.45, 0.65)
 const INFLUENCE_DURATION := 120.0            # seconds "under the influence": no episodes or hallucinations
 const INFLUENCE_NUMB := 0.7                  # how grey/blurred/muffled the world gets (0-1)
 const INFLUENCE_MUFFLE_HZ := 900.0           # low-pass cutoff on all sound at full influence
@@ -193,12 +196,12 @@ const HALLUCINATION_CHANCE_PER_SEC := 0.12   # chance per second at the threshol
 const HALLUCINATION_CHANCE_AT_MAX := 0.6     # chance per second at full meter
 const HALLUCINATION_COOLDOWN := 15.0
 const HALLUCINATION_DURATION := 12.0         # seconds you must survive
-const HALLUCINATION_DURATION_PER_ADDICTION := 4.0
+const HALLUCINATION_DURATION_PER_SYSTEM := 12.0   # extra seconds when the "in your system" meter is full
 const SHAKE_STRENGTH := 0.05
 const MONSTER_SPAWN_DELAY := 1.5
 const MONSTER_SPAWN_DISTANCE := 7.0
 const MONSTER_SPEED := 2.75                  # a little faster than walking, slower than sprinting
-const MONSTER_SPEED_PER_ADDICTION := 0.3
+const MONSTER_SPEED_PER_SYSTEM := 0.9        # extra speed when the "in your system" meter is full
 const MONSTER_CATCH_DISTANCE := 0.9
 
 # ---------- Sound (hospital) ----------

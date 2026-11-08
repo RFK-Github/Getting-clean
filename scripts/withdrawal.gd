@@ -1,8 +1,9 @@
 extends Node
-## Withdrawal meter, addiction and drugs. Lives across levels and "waking up in bed".
+## Withdrawal meter, the "in your system" meter and drugs. Lives across levels and days.
 ##
-## - meter rises over time without drugs (faster with more addiction).
-## - take_pill(): instant relief, more addiction, and "under the influence" for a while:
+## - meter (withdrawal) rises over time - the more is in your system, the faster.
+## - in_system fills when you take a pill and slowly drains away.
+## - take_pill(): withdrawal to 0, in_system up, and "under the influence" for a while:
 ##   no episodes or hallucinations, the world goes grey and muffled.
 ## - state says what is happening right now ("", "episode", "hallucination"), so only
 ##   one thing happens at a time.
@@ -22,7 +23,7 @@ const PILL_MESSAGES := [
 ]
 
 var meter: float = Config.METER_START
-var addiction := 0.0
+var in_system := 0.0                # 0..Config.SYSTEM_MAX: drugs still in his body
 var pills_taken := 0
 var influence := 0.0                # seconds left under the influence
 var state := ""                     # "", "episode" or "hallucination"
@@ -37,12 +38,18 @@ var taken_pills: Array[String] = []     # ids of pill bottles taken today (they 
 func _process(delta: float) -> void:
 	if not hold:
 		meter = minf(Config.METER_MAX, meter + _rate() * delta)
+	in_system = maxf(0.0, in_system - Config.SYSTEM_DRAIN_PER_SEC * delta)
 	influence = maxf(0.0, influence - delta)
 	Settings.set_muffle(influence_strength())
 
 
 func _rate() -> float:
-	return Config.METER_RISE_PER_SEC * rate_multiplier * (1.0 + addiction * Config.ADDICTION_RISE_MULTIPLIER)
+	return Config.METER_RISE_PER_SEC * rate_multiplier * (1.0 + system_level() * Config.SYSTEM_RISE_MULTIPLIER)
+
+
+## 0..1: how full the "in your system" meter is.
+func system_level() -> float:
+	return in_system / Config.SYSTEM_MAX
 
 
 ## 0..1: how strongly the drugs are working right now (fades out over the duration).
@@ -58,7 +65,7 @@ func is_influenced() -> bool:
 
 func take_pill(id := "") -> void:
 	meter = 0.0   # all of it, at once. That's the trap.
-	addiction += Config.PILL_ADDICTION_GAIN
+	in_system = minf(Config.SYSTEM_MAX, in_system + Config.PILL_SYSTEM_GAIN)
 	influence = Config.INFLUENCE_DURATION
 	pills_taken += 1
 	if id != "":
@@ -84,7 +91,7 @@ func add_item(id: String) -> void:
 ## Start over (after an ending).
 func reset() -> void:
 	meter = Config.METER_START
-	addiction = 0.0
+	in_system = 0.0
 	pills_taken = 0
 	influence = 0.0
 	state = ""
