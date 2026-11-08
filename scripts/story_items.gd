@@ -34,7 +34,7 @@ const LETTERS := [
 		"text": "My love,\n\nThe house is so quiet. Some nights I still set the table for three, and then I just sit there.\n\nI'm not angry. I just need you to come back to me. Get well. I'll be here.\n\nAll my love,\nC."},
 	{"id": "letter_2", "month": "November", "years_after": 1, "pos": Vector3(5.6, 1.15, -7.4),
 		"text": "Hi,\n\nThe doctor says you have good days and bad days. I came once, but they said you didn't know who I was.\n\nPlease get better.\n\nC."},
-	{"id": "letter_3", "month": "June", "years_after": 3, "pos": Vector3(9.6, 1.31, -20.0),
+	{"id": "letter_3", "month": "June", "years_after": 2, "pos": Vector3(9.6, 1.31, -20.0),
 		"text": "I don't know if you read these. Write back if you can.\n\nC."},
 	{"id": "letter_4", "month": "January", "years_after": -1, "pos": Vector3(6.3, 0.775, -41.2),
 		"text": "I need to tell you something when I visit. Please be clean.\n\nC."},

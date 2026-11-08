@@ -77,6 +77,7 @@ func play_cutscene(scene_script: GDScript, end_black := false) -> void:
 	in_cutscene = true
 	var p := CutscenePlayer.new()
 	add_child(p)
+	_fade.color.a = 0.0   # the cutscene starts black itself (lets two cutscenes play back to back)
 	await p.play(scene_script, end_black)
 	if end_black:
 		_fade.color.a = 1.0
@@ -210,6 +211,7 @@ func _ending_sequence(scene_script: GDScript, title: String) -> void:
 	in_cutscene = true
 	var p := CutscenePlayer.new()
 	add_child(p)
+	_fade.color.a = 0.0   # the cutscene starts black itself (lets two cutscenes play back to back)
 	_fade.color.a = 0.0
 	await p.play(scene_script, true)
 	in_cutscene = false

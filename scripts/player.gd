@@ -131,7 +131,8 @@ func _physics_process(delta: float) -> void:
 	dir = dir.normalized()
 	var on_floor := is_on_floor()
 	# Jump buffer: pressing jump just before landing still jumps the moment you touch down.
-	if Input.is_action_just_pressed("jump"):
+	# Holding Space keeps jumping (bunny hop): every landing jumps again.
+	if Input.is_action_just_pressed("jump") or Input.is_action_pressed("jump"):
 		_jump_buffer = Config.JUMP_BUFFER_TIME
 	else:
 		_jump_buffer = maxf(0.0, _jump_buffer - delta)

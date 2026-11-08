@@ -1,35 +1,42 @@
 extends "res://scripts/cutscenes/cutscene_base.gd"
 ## FLASHBACK 1: Driving at sunset. He looks back at his daughter in the back seat and they
 ## laugh together. Not watching the road, he drifts over the centre line toward an oncoming
-## car. His wife screams; he swerves, misses it - and goes off the road into a tree.
-## The car stands still at the origin facing -Z; the world (road, trees) moves past it,
-## and slides sideways as the car drifts toward the edge.
+## car. His wife screams; he swerves right, misses it, goes off the road, down into the ditch
+## and into a tree.
+##
+## The car's interior stays at the origin. The car's path through the world (position,
+## heading, pitch, roll) is computed for every moment, and the world is placed with the
+## inverse of that - so it looks like the car drives, turns and drops into the ditch.
 
 const Audio := preload("res://scripts/audio.gd")
 const GhostCar := preload("res://scripts/props/ghost_car.gd")
 
 const EYE := Vector3(-0.38, 1.3, 0.05)     # driver's seat (left)
-const RANGE := 210.0                        # moving scenery wraps over this length
 const TURN_BACK := 8.6                      # he turns back to the road: headlights, right ahead
 const LOOK_OUT := 9.0                       # she screams, he swerves
-const IMPACT := 10.3                        # they hit the tree
-const DRIFT_LEFT := 1.4                     # drifting over the centre line while he looks back (m)
-const DRIFT := 2.6                          # where the swerve ends: off the road on the right (m)
 const PASS_TIME := 9.6                      # the other car passes them here (just missed)
-const BONNET_FRONT := -2.35
+const IMPACT := 10.3                        # the tree
+const DRIFT_LEFT := -1.4                    # over the centre line while he looks back (m)
+const DITCH_X := 6.1                        # the bottom of the ditch, right of the road
+const SWERVE_SPAN := 1.8                    # the swerve curve is still bending at the impact
+const ROAD_HALF := 4.5
+const BONNET_FRONT := 2.35                  # from the car's centre to the front bumper
+const ROAD_START := 40.0
+const ROAD_END := -280.0
 
-var _world: Node3D                          # road + trees: moved sideways for the drift
-var _moving: Array[Node3D] = []
-var _tree: Node3D                           # the one they hit
-var _oncoming: Node3D                       # the car he swerves to avoid
+var _world: Node3D
+var _tree: Node3D
+var _oncoming: Node3D
 var _wife: Node3D
 var _girl: Node3D
 var _bonnet: Node3D
 var _glass: Node3D
 var _cracks: Array[Node3D] = []
+var _shards: CPUParticles3D
 var _look_back := 0.0
 var _crashed := false
 var _jolt := 0.0
+var _car_xf := Transform3D.IDENTITY        # the car in the world, frozen at the impact
 
 
 func get_settings() -> Dictionary:
@@ -46,7 +53,7 @@ func get_settings() -> Dictionary:
 
 
 func build() -> void:
-	duration = 13.5
+	duration = 14.0
 
 	cam = Camera3D.new()
 	cam.fov = 70
@@ -54,16 +61,17 @@ func build() -> void:
 	cam.far = 250
 	add_child(cam)
 
-	var sun := DirectionalLight3D.new()
-	sun.light_color = Color(1.0, 0.75, 0.5)
-	sun.light_energy = 0.9
-	sun.rotation_degrees = Vector3(-8, 170, 0)   # low sun ahead of the car
-	add_child(sun)
-
 	_build_car()
 	_world = Node3D.new()
 	add_child(_world)
+	var sun := DirectionalLight3D.new()
+	sun.light_color = Color(1.0, 0.75, 0.5)
+	sun.light_energy = 0.9
+	sun.rotation_degrees = Vector3(-8, 170, 0)   # low sun ahead
+	_world.add_child(sun)
 	_build_road()
+	_build_shards()
+	_world.transform = _car_transform(0.0).affine_inverse()
 
 	sound(Audio.traffic(), Config.CUTSCENE_ENGINE_DB)
 
@@ -75,38 +83,78 @@ func build() -> void:
 	at(6.0, func():
 		say("Daughter: \"Again! Again!\"", 1.8)
 		sound(Audio.child_laugh(), -4.0, "Master", true).pitch_scale = Config.CHILD_VOICE_PITCH * 1.1)
-	at(TURN_BACK + 0.1, func(): sound(Audio.horn(), Config.CUTSCENE_SCREAM_DB, Settings.LOUD_BUS, true))   # the other car
 	at(7.5, func(): say("You're laughing too. You haven't looked at the road in a while.", 1.1))
+	at(TURN_BACK + 0.1, func(): sound(Audio.horn(), Config.CUTSCENE_SCREAM_DB, Settings.LOUD_BUS, true))   # the other car
 	at(LOOK_OUT, func():
 		say("Your wife: \"LOOK OUT!\"", 1.0)
 		sound(Audio.scream(), Config.CUTSCENE_SCREAM_DB, Settings.LOUD_BUS, true))
 	at(LOOK_OUT + 0.35, func(): sound(Audio.child_scream(), Config.CUTSCENE_SCREAM_DB, Settings.LOUD_BUS, true))
 	at(IMPACT, func():
 		_crash()
-		sound(Audio.crash(), Config.CUTSCENE_SCREAM_DB + 2.0, Settings.LOUD_BUS, true))
-	at(IMPACT + 0.55, func(): fade(Color(0, 0, 0, 1), 0.15))
-	at(IMPACT + 0.75, func():
+		sound(Audio.crash(), Config.CUTSCENE_SCREAM_DB + 4.0, Settings.LOUD_BUS, true)
+		sound(Audio.crash(), Config.CUTSCENE_SCREAM_DB, Settings.LOUD_BUS, true).pitch_scale = 0.7)
+	at(IMPACT + 0.9, func(): fade(Color(0, 0, 0, 1), 0.1))
+	at(IMPACT + 1.0, func():
 		stop_all_sounds()
 		subtitle_label.text = ""
 		sound(Audio.tinnitus(), Config.TINNITUS_DB - 4.0, Settings.LOUD_BUS, true))   # ringing in the dark
 
 
+# ------------------------------------------------------------------ The car's path
+
+## Sideways position (x) of the car at time t: straight, drifting left, then the swerve.
+func _x_at(time: float) -> float:
+	if time < LOOK_OUT:
+		return smoothstep(4.5, TURN_BACK, time) * DRIFT_LEFT
+	var u := clampf((time - LOOK_OUT) / SWERVE_SPAN, 0.0, 1.0)
+	var u_hit := (IMPACT - LOOK_OUT) / SWERVE_SPAN
+	# Normalised so the car is at the ditch bottom exactly at the impact - still turning.
+	return DRIFT_LEFT + (DITCH_X - DRIFT_LEFT) * smoothstep(0.0, 1.0, u) / smoothstep(0.0, 1.0, u_hit)
+
+
+## The ground height across the road: flat road, a ditch on the right.
+func _ground(x: float) -> float:
+	if x < 4.9:
+		return 0.0
+	if x < 5.7:
+		return -0.9 * (x - 4.9) / 0.8
+	if x < 6.5:
+		return -0.9
+	if x < 7.3:
+		return -0.9 * (7.3 - x) / 0.8
+	return 0.0
+
+
+## Where the car is and how it is turned at time t (its yaw follows its direction of travel;
+## pitch and roll follow the ground as it goes into the ditch).
+func _car_transform(time: float) -> Transform3D:
+	var tt := minf(time, IMPACT)
+	var speed: float = Config.FLASHBACK_DRIVE_SPEED
+	var dt := 0.03
+	var x := _x_at(tt)
+	var dx := (_x_at(tt + dt) - _x_at(tt - dt)) / (2.0 * dt)
+	var yaw := atan2(-dx, speed)
+	var y := _ground(x)
+	var dy := (_ground(_x_at(tt + dt)) - _ground(_x_at(tt - dt))) / (2.0 * dt)
+	var pitch := atan2(dy, sqrt(speed * speed + dx * dx))
+	var roll := -dy * 0.06
+	return Transform3D(Basis.from_euler(Vector3(pitch, yaw, roll)), Vector3(x, y, -speed * tt))
+
+
 func animate(delta: float) -> void:
 	if not _crashed:
-		# The world passes the car (the tree they hit doesn't wrap around).
-		var step := Config.FLASHBACK_DRIVE_SPEED * delta
-		for n in _moving:
-			n.position.z += step
-			if n.position.z > 20.0:
-				n.position.z -= RANGE
-		_tree.position.z += step
-		# While he looks back the car drifts left, over the centre line. Then he swerves right,
-		# past the other car and off the road. (The world moves the opposite way.)
-		if t < LOOK_OUT:
-			_world.position.x = smoothstep(4.5, LOOK_OUT, t) * DRIFT_LEFT
-		else:
-			_world.position.x = lerpf(DRIFT_LEFT, -DRIFT, smoothstep(LOOK_OUT, IMPACT - 0.1, t))
-		_oncoming.position.z = (t - PASS_TIME) * (Config.FLASHBACK_DRIVE_SPEED + Config.FLASHBACK_ONCOMING_SPEED)
+		_car_xf = _car_transform(t)
+	var xf := _car_xf
+	if _crashed:
+		# The front digs in and the car rocks back a little after the hit.
+		_jolt += delta
+		var rock := sin(minf(_jolt * 9.0, PI)) * exp(-_jolt * 3.0)
+		xf = xf * Transform3D(Basis.from_euler(Vector3(-0.12 * rock - 0.05, 0, 0.1 * rock)), Vector3(0, 0, 0.35 * rock))
+	_world.transform = xf.affine_inverse()
+
+	# The other car comes up the oncoming lane and passes them as he swerves.
+	_oncoming.position = Vector3(-2.9, 0, -Config.FLASHBACK_DRIVE_SPEED * PASS_TIME
+		+ Config.FLASHBACK_ONCOMING_SPEED * (t - PASS_TIME))
 
 	# Camera: forward, then over the right shoulder at her, then snapped back to the road.
 	var target := 1.0 if (t > 2.4 and t < TURN_BACK) else 0.0
@@ -114,18 +162,19 @@ func animate(delta: float) -> void:
 	var w := smoothstep(0.0, 1.0, _look_back)
 	var eye := EYE.lerp(EYE + Vector3(0.24, 0.06, 0.1), w)
 	var look_ahead := eye + Vector3(0, -0.05, -1)
-	if t > LOOK_OUT and not _crashed:
-		look_ahead += Vector3(0.45 * sin(clampf((t - LOOK_OUT) / (IMPACT - LOOK_OUT), 0.0, 1.0) * PI), 0, 0)   # yanking the wheel right
-	# The crash: thrown forward into the belt, then back; the world tilts.
+	# Going down into the ditch: a heavy bump.
+	if t > IMPACT - 0.45 and not _crashed:
+		eye.y += sin((t - IMPACT + 0.45) * 30.0) * 0.03
+	# The impact: thrown forward hard into the belt, head snaps, the world tilts and shakes.
 	if _crashed:
-		_jolt += delta
-		var k := exp(-_jolt * 5.0)
-		eye += Vector3(0, -0.12 * k, -0.35 * sin(minf(_jolt * 14.0, PI)) )
-		var s := 0.06 * k * (1.0 if Settings.screen_shake else 0.3)
+		var k := exp(-_jolt * 4.0)
+		eye += Vector3(0.05 * k, -0.12 * k, -0.35 * sin(minf(_jolt * 12.0, PI)))
+		look_ahead += Vector3(0, -0.35 * sin(minf(_jolt * 10.0, PI)), 0)
+		var s := 0.12 * k * (1.0 if Settings.screen_shake else 0.3)
 		eye += Vector3(randf_range(-s, s), randf_range(-s, s), 0)
 	look_blend(eye, look_ahead, Vector3(0.0, 1.12, 1.05), w)
 	if _crashed:
-		cam.rotation.z = lerpf(cam.rotation.z, 0.22, clampf(delta * 12.0, 0.0, 1.0))
+		cam.rotation.z = lerpf(cam.rotation.z, 0.38, clampf(delta * 14.0, 0.0, 1.0))
 
 	# She laughs: head bobs and arms flap.
 	if t > 3.0 and t < TURN_BACK:
@@ -142,20 +191,55 @@ func animate(delta: float) -> void:
 		_wife.get_node("arm_r").rotation.x = lerpf(_wife.get_node("arm_r").rotation.x, 2.4, delta * 10.0)
 
 
-## The moment of impact: everything stops, the bonnet buckles, the windscreen cracks,
-## everyone is thrown forward.
+## The moment of impact: a white flash, everything stops, the bonnet folds up, the windscreen
+## shatters into a web, glass flies, everyone is thrown forward.
 func _crash() -> void:
 	_crashed = true
-	_tree.position.z = BONNET_FRONT - 0.35
+	fade(Color(1, 1, 1, 0.85), 0.0)
+	fade(Color(1, 1, 1, 0.0), 0.25)
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(_bonnet, "rotation:x", 0.35, 0.08)
-	tw.tween_property(_bonnet, "position:y", 0.98, 0.08)
-	tw.tween_property(_bonnet, "scale:z", 0.6, 0.08)
+	tw.tween_property(_bonnet, "rotation:x", 0.6, 0.06)
+	tw.tween_property(_bonnet, "position:y", 1.05, 0.06)
+	tw.tween_property(_bonnet, "scale:z", 0.4, 0.06)
 	for c in _cracks:
 		c.visible = true
+	_shards.emitting = true
 	for f in [_wife, _girl]:
-		tw.tween_property(f, "position:z", f.position.z - 0.18, 0.06)
-		tw.tween_property(f.get_node("head"), "rotation:x", -0.7, 0.06)
+		tw.tween_property(f, "position:z", f.position.z - 0.3, 0.05)
+		tw.tween_property(f.get_node("head"), "rotation:x", -1.0, 0.05)
+	# The tree shudders.
+	var shake := create_tween()
+	for i in 6:
+		shake.tween_property(_tree, "rotation:z", 0.05 * (1.0 if i % 2 == 0 else -1.0) * (1.0 - i / 6.0), 0.05)
+	shake.tween_property(_tree, "rotation:z", 0.0, 0.05)
+
+
+## Glass from the windscreen, flying into the car at the impact.
+func _build_shards() -> void:
+	_shards = CPUParticles3D.new()
+	_shards.position = Vector3(-0.2, 1.3, -0.8)
+	_shards.emitting = false
+	_shards.one_shot = true
+	_shards.explosiveness = 0.95
+	_shards.amount = 60
+	_shards.lifetime = 0.9
+	_shards.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	_shards.emission_box_extents = Vector3(0.6, 0.2, 0.05)
+	_shards.direction = Vector3(0, 0.2, 1)
+	_shards.spread = 35.0
+	_shards.initial_velocity_min = 2.0
+	_shards.initial_velocity_max = 5.0
+	_shards.gravity = Vector3(0, -6, 0)
+	_shards.angular_velocity_min = -600.0
+	_shards.angular_velocity_max = 600.0
+	var bit := BoxMesh.new()
+	bit.size = Vector3(0.015, 0.015, 0.003)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(0.85, 0.9, 0.95)
+	bit.material = m
+	_shards.mesh = bit
+	add_child(_shards)
 
 
 func _build_car() -> void:
@@ -242,35 +326,52 @@ func _build_car() -> void:
 	add_child(_girl)
 
 
+
 func _build_road() -> void:
+	var length := ROAD_START - ROAD_END
+	var mid := (ROAD_START + ROAD_END) * 0.5
 	var asphalt := mat("asphalt", Color.WHITE, 0.4)
-	box(Vector3(0, -0.05, -100), Vector3(9, 0.1, 260), asphalt, false, _world, 4.0)
-	box(Vector3(0, -0.1, -100), Vector3(80, 0.05, 260), mat("grass", Color(1.1, 0.9, 0.6), 0.3), false, _world, 8.0)
+	var grass := mat("grass", Color(1.1, 0.9, 0.6), 0.3)
+	var ditch_grass := mat("grass", Color(0.8, 0.7, 0.45), 0.3)
+	box(Vector3(0, -0.05, mid), Vector3(ROAD_HALF * 2.0, 0.1, length), asphalt, false, _world, 4.0)
+	box(Vector3(-24.25, -0.1, mid), Vector3(39.5, 0.05, length), grass, false, _world, 8.0)   # left verge
+	# Right side: a narrow verge, then a ditch about 0.9 m deep, then the field.
+	box(Vector3(4.7, -0.05, mid), Vector3(0.4, 0.1, length), grass, false, _world, 8.0)
+	var slope_len := sqrt(0.8 * 0.8 + 0.9 * 0.9)
+	var slope_angle := atan2(0.9, 0.8)
+	var down := box(Vector3(5.3, -0.45, mid), Vector3(slope_len, 0.1, length), ditch_grass, false, _world, 8.0)
+	down.rotation.z = -slope_angle
+	var up := box(Vector3(6.9, -0.45, mid), Vector3(slope_len, 0.1, length), ditch_grass, false, _world, 8.0)
+	up.rotation.z = slope_angle
+	box(Vector3(6.1, -0.95, mid), Vector3(0.9, 0.1, length), ditch_grass, false, _world, 8.0)    # bottom
+	box(Vector3(27.3, -0.1, mid), Vector3(40.0, 0.05, length), grass, false, _world, 8.0)       # field
+
 	var paint := mat("plain", Color(0.9, 0.85, 0.6), 1.0)
-	box(Vector3(1.9, 0.005, -100), Vector3(0.12, 0.01, 260), paint, false, _world, 8.0)   # edge line
+	box(Vector3(1.9, 0.005, mid), Vector3(0.12, 0.01, length), paint, false, _world, 8.0)   # edge line
 	var trunk := mat("wood", Color.WHITE, 1.0)
 	var leaves := mat("grass", Color(1.0, 0.9, 0.55), 1.0)
-	var z := 15.0
+	var z := ROAD_START
 	var i := 0
-	while z > 15.0 - RANGE:
+	while z > ROAD_END:
 		i += 1
-		_moving.append(box(Vector3(-1.4, 0.005, z), Vector3(0.12, 0.01, 2.5), paint, false, _world))  # centre dashes
+		box(Vector3(-1.4, 0.005, z), Vector3(0.12, 0.01, 2.5), paint, false, _world)   # centre dashes
 		if i % 2 == 0:   # a pair of trees every 12 m
-			for side in [-1.0, 1.0]:
-				var tree := _tree_node(trunk, leaves, 0.35)
-				tree.position = Vector3(side * randf_range(6.0, 12.0), 0, z + randf_range(-3, 3))
-				_moving.append(tree)
+			var left := _tree_node(trunk, leaves, 0.35)
+			left.position = Vector3(-randf_range(6.0, 12.0), 0, z + randf_range(-3, 3))
+			var right := _tree_node(trunk, leaves, 0.35)
+			right.position = Vector3(randf_range(9.0, 14.0), 0, z + randf_range(-3, 3))
 		z -= 6.0
 
-	# The other car, in the oncoming lane. It passes them just as he swerves.
+	# The other car, in the oncoming lane (placed every frame in animate()).
 	_oncoming = GhostCar.new()
 	_oncoming.rotation.y = PI   # front toward +Z, toward them
-	_oncoming.position = Vector3(-2.9, 0, -PASS_TIME * (Config.FLASHBACK_DRIVE_SPEED + Config.FLASHBACK_ONCOMING_SPEED))
 	_world.add_child(_oncoming)
 
-	# The tree: a thick old one right by the edge. They reach it exactly at the impact.
-	_tree = _tree_node(trunk, leaves, 0.7)
-	_tree.position = Vector3(DRIFT, 0, BONNET_FRONT - 0.35 - Config.FLASHBACK_DRIVE_SPEED * IMPACT)
+	# The tree: a thick old one at the bottom of the ditch, exactly where the bumper ends up.
+	_tree = _tree_node(trunk, leaves, 0.75)
+	var hit := _car_transform(IMPACT)
+	var nose := hit.origin + (-hit.basis.z) * (BONNET_FRONT + 0.4)
+	_tree.position = Vector3(nose.x, -0.9, nose.z)
 
 	# Low sun ahead, behind the haze
 	var quad := QuadMesh.new()
@@ -285,8 +386,8 @@ func _build_road() -> void:
 	quad.material = m
 	var disc := MeshInstance3D.new()
 	disc.mesh = quad
-	disc.position = Vector3(25, 14, -220)
-	add_child(disc)
+	disc.position = Vector3(25, 14, ROAD_END - 60.0)
+	_world.add_child(disc)
 
 
 func _tree_node(trunk: Material, leaves: Material, thickness: float) -> Node3D:

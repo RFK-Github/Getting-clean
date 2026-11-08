@@ -328,7 +328,7 @@ const NPC_PANIC_SPEED := 2.8                 # people run from you after the fir
 
 # ---------- Time-passing hints ----------
 const YEAR_HE_THINKS := 2019                 # the year he believes it is (he thinks it's been weeks)
-const YEAR_NOW := 2024                       # the real year (calendars, the last letter)
+const YEAR_NOW := 2022                       # the real year (calendars, the last letter)
 const HINT_LINES_FROM_DAY := 2               # staff/patients start recognising him from this day
 const AGE_FULL_AFTER_WAKES := 4              # mirror: fully grey and bearded after waking up this many times
 const HAIR_COLOR_OLD := Color(0.55, 0.53, 0.5)

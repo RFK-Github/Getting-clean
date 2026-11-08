@@ -1410,7 +1410,7 @@ func _chart_text() -> String:
 	var lines: Array[String] = []
 	lines.append("Programme: residential withdrawal management")
 	lines.append("Admitted: March %d. Crossed out. Re-admitted %d. Crossed out. Re-admitted %d." % [
-		Config.YEAR_HE_THINKS, Config.YEAR_HE_THINKS + 2, Config.YEAR_NOW - 1])
+		Config.YEAR_HE_THINKS, Config.YEAR_HE_THINKS + 1, Config.YEAR_NOW - 1])
 	lines.append("")
 	lines.append("Day %d." % Recovery.day())
 	lines.append("Recovery  %s   %s" % [Recovery.scale_text(), Recovery.assessment()])

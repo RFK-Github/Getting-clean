@@ -8,6 +8,7 @@ const Hud := preload("res://scripts/hud.gd")
 const Hallucination := preload("res://scripts/hallucination.gd")
 const Episode := preload("res://scripts/episode.gd")
 const PauseMenu := preload("res://scripts/pause_menu.gd")
+const TheVisit := preload("res://scripts/cutscenes/the_visit.gd")
 
 const LEVELS := {
 	"philadelphia": preload("res://scripts/levels/philadelphia.gd"),
@@ -22,7 +23,7 @@ const FLASHBACKS := [
 	["street", preload("res://scripts/cutscenes/flashback_street.gd"),
 		"That was you. Before this place. Before you promised her."],
 	["grave", preload("res://scripts/cutscenes/flashback_grave.gd"),
-		"She's gone. She has been gone for a long time. You know that now."],
+		"She's gone. They're both gone, in different ways. You know that now."],
 ]
 
 var _post: ShaderMaterial
@@ -125,6 +126,8 @@ func _play_next_flashback() -> void:
 			continue
 		await Game.play_cutscene(fb[1], true)
 		Recovery.see_flashback(fb[0])
+		if Recovery.flashbacks_seen.size() == FLASHBACKS.size():
+			await Game.play_cutscene(TheVisit, true)   # now he knows: she comes to see him
 		_episode.black_out(fb[2])
 		return
 
