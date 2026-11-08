@@ -107,6 +107,7 @@ func _setup_input() -> void:
 	_bind("move_left", [KEY_A, KEY_LEFT])
 	_bind("move_right", [KEY_D, KEY_RIGHT])
 	_bind("sprint", [KEY_SHIFT])
+	_bind("jump", [KEY_SPACE])
 	_bind("flashlight", [KEY_F])
 	_bind("interact", [KEY_E])
 	_bind("pause", [KEY_ESCAPE])

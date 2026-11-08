@@ -27,6 +27,7 @@ var _pitch := 0.0
 var _bob := 0.0
 var _target: Object = null
 var _shown_prompt := ""
+var _jump_buffer := 0.0
 
 
 func _ready() -> void:
@@ -111,8 +112,32 @@ func _physics_process(delta: float) -> void:
 	var dir := global_transform.basis * Vector3(input.x, 0.0, input.y)
 	dir.y = 0.0
 	dir = dir.normalized()
-	velocity.x = dir.x * speed
-	velocity.z = dir.z * speed
+	var on_floor := is_on_floor()
+	# Jump buffer: pressing jump just before landing still jumps the moment you touch down.
+	if Input.is_action_just_pressed("jump"):
+		_jump_buffer = Config.JUMP_BUFFER_TIME
+	else:
+		_jump_buffer = maxf(0.0, _jump_buffer - delta)
+	var jumping := on_floor and not frozen and _jump_buffer > 0.0 and stamina >= Config.JUMP_STAMINA
+	if jumping:
+		_jump_buffer = 0.0
+	if on_floor and not jumping:
+		# On the ground: walk / sprint exactly where you steer.
+		velocity.x = dir.x * speed
+		velocity.z = dir.z * speed
+	elif jumping:
+		# Take off. Keep any speed you carried in (jumping right as you land = bunny hop).
+		var carried := Vector2(velocity.x, velocity.z)
+		if carried.length() < speed:
+			carried = Vector2(dir.x, dir.z) * speed
+		velocity.x = carried.x
+		velocity.z = carried.y
+		velocity.y = Config.JUMP_VELOCITY
+		stamina -= Config.JUMP_STAMINA
+	else:
+		# In the air: Quake-style air strafing. Hold a strafe key and turn the mouse the same
+		# way to curve and gain a little speed; no input = keep your momentum.
+		_air_accelerate(dir, delta)
 	move_and_slide()
 
 	var speed_ratio := Vector2(velocity.x, velocity.z).length() / Config.WALK_SPEED
@@ -120,6 +145,24 @@ func _physics_process(delta: float) -> void:
 		_bob += delta * Config.HEAD_BOB_FREQ * minf(speed_ratio, Config.SPRINT_BOB_MULTIPLIER)
 	body.update_motion(delta, speed_ratio, sprinting, _bob)
 	_update_target()
+
+
+## Air acceleration (as in Quake/Source): only the part of the velocity along the wished
+## direction is capped (at a small speed), so steering sideways while turning adds speed.
+func _air_accelerate(wish_dir: Vector3, delta: float) -> void:
+	if wish_dir == Vector3.ZERO:
+		return
+	var horizontal := Vector3(velocity.x, 0.0, velocity.z)
+	var current := horizontal.dot(wish_dir)
+	var add := Config.AIR_WISH_SPEED - current
+	if add <= 0.0:
+		return
+	var accel := minf(Config.AIR_ACCELERATION * Config.AIR_WISH_SPEED * delta, add)
+	horizontal += wish_dir * accel
+	if horizontal.length() > Config.AIR_MAX_SPEED:
+		horizontal = horizontal.normalized() * Config.AIR_MAX_SPEED
+	velocity.x = horizontal.x
+	velocity.z = horizontal.z
 
 
 func _update_stamina(delta: float, input: Vector2) -> void:

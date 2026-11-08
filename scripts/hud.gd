@@ -70,7 +70,7 @@ func _ready() -> void:
 	_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
-	_help = _label(root, "WASD move   Shift sprint   F flashlight   E interact   I belongings   ESC menu",
+	_help = _label(root, "WASD move   Shift sprint   Space jump   F flashlight   E interact   I belongings   ESC menu",
 		Vector2(0, 0), Vector2(16, 50), Vector2(420, 20))
 	_help.add_theme_font_size_override("font_size", Config.UI_FONT_SIZE_SMALL)
 

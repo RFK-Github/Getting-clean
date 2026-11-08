@@ -13,6 +13,7 @@ You arrive at a recovery center in Philadelphia, trying to get clean for your wi
 | WASD / arrows | Move |
 | Mouse | Look |
 | Shift | Sprint |
+| Space | Jump (in the air: hold A/D and turn the mouse the same way to air-strafe) |
 | F | Flashlight |
 | E | Interact / continue |
 | 1-4 | Dialogue choices |

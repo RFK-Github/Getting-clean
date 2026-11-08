@@ -129,6 +129,14 @@ const SPRINT_BOB_MULTIPLIER := 1.6
 const SPRINT_FOV_KICK := 6.0
 const INTERACT_DISTANCE := 2.0
 
+# ---------- Jumping and air strafing ----------
+const JUMP_VELOCITY := 4.2                   # about 0.9 m high
+const JUMP_STAMINA := 6.0                    # stamina per jump
+const JUMP_BUFFER_TIME := 0.15               # jump pressed this long before landing still counts (bunny hops)
+const AIR_WISH_SPEED := 0.9                  # air strafing: how much speed you can add "toward" your keys
+const AIR_ACCELERATION := 12.0               # air strafing: how quickly (higher = sharper turns, more gain)
+const AIR_MAX_SPEED := 9.0                   # safety cap on air speed (m/s)
+
 # ---------- Stamina ----------
 const STAMINA_MAX := 100.0
 const STAMINA_DRAIN_PER_SEC := 22.0
