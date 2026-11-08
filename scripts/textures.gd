@@ -104,6 +104,39 @@ static func _pattern(kind: String) -> Image:
 				"car":
 					c = Color(0.8, 0.8, 0.8)
 					amt = 0.02
+				"linoleum":
+					c = Color(0.72, 0.76, 0.7) if ((x >> 4) + (y >> 4)) % 2 == 0 else Color(0.66, 0.7, 0.66)
+					if rng.randf() < 0.04:
+						c = c.darkened(0.25)  # speckles
+					if x % 16 == 0 or y % 16 == 0:
+						c = c.darkened(0.12)
+					amt = 0.02
+				"white_wall":
+					c = Color(0.86, 0.87, 0.83)
+					if stains.has(x) and y > 24:
+						c = c.darkened(0.06)
+					amt = 0.015
+				"pool_tile":
+					c = Color(0.82, 0.88, 0.9)
+					if x % 8 == 0 or y % 8 == 0:
+						c = Color(0.55, 0.62, 0.65)
+					amt = 0.02
+				"water":
+					c = Color(0.25, 0.55, 0.65)
+					if (x + int(4.0 * sin(y * 0.6))) % 11 == 0:
+						c = Color(0.55, 0.8, 0.85)
+					amt = 0.03
+				"grass":
+					c = Color(0.3, 0.42, 0.2)
+					if rng.randf() < 0.15:
+						c = Color(0.38, 0.5, 0.24)
+					amt = 0.06
+				"court":
+					c = Color(0.36, 0.38, 0.36)
+					amt = 0.04
+				"cork":
+					c = Color(0.62, 0.45, 0.28)
+					amt = 0.1
 			c = Color(clampf(c.r + n * amt, 0.0, 1.0), clampf(c.g + n * amt, 0.0, 1.0), clampf(c.b + n * amt, 0.0, 1.0))
 			img.set_pixel(x, y, c)
 	return img

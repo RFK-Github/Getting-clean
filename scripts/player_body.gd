@@ -81,6 +81,13 @@ func _build_placeholder() -> void:
 	# Torso and legs follow the body's yaw (not the camera pitch).
 	_box(self, Vector3(0, 1.2, 0), Vector3(0.42, 0.55, 0.22), jacket)
 	_box(self, Vector3(0, 0.88, 0), Vector3(0.38, 0.16, 0.22), pants)
+	# Head and neck: only on visual layer 2, so mirrors see it but the player's camera doesn't.
+	var hair := Psx.material(Tex.get_texture("plain"), Config.HAIR_COLOR, 1.0, false)
+	for part in [
+			_box(self, Vector3(0, 1.52, -0.02), Vector3(0.1, 0.1, 0.1), skin),
+			_box(self, Vector3(0, 1.66, -0.04), Vector3(0.22, 0.26, 0.24), skin),
+			_box(self, Vector3(0, 1.8, -0.02), Vector3(0.24, 0.07, 0.26), hair)]:
+		part.layers = 2
 	_leg_l = _leg(Vector3(-0.1, 0.82, 0), pants, shoes)
 	_leg_r = _leg(Vector3(0.1, 0.82, 0), pants, shoes)
 

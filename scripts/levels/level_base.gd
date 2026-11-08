@@ -6,8 +6,10 @@ const Psx := preload("res://scripts/psx.gd")
 const Tex := preload("res://scripts/textures.gd")
 const Pickup := preload("res://scripts/pickup.gd")
 
-## Where the player starts (and wakes up, in the hospital).
+## Where the player starts this time.
 var spawn := Transform3D.IDENTITY
+## Where the player wakes up after being caught (the hospital bed). Defaults to spawn.
+var bed_spawn := Transform3D.IDENTITY
 
 
 func build() -> void:

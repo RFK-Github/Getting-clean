@@ -10,7 +10,7 @@ const POST_SHADER := preload("res://shaders/post.gdshader")
 
 const LEVELS := {
 	"philadelphia": preload("res://scripts/levels/philadelphia.gd"),
-	"hospital": preload("res://scripts/levels/test_level.gd"),  # until build step 3
+	"hospital": preload("res://scripts/levels/hospital.gd"),
 }
 
 
@@ -48,7 +48,7 @@ func _ready() -> void:
 	if s.get("hallucinations", false):
 		var hallucination := Hallucination.new()
 		hallucination.player = player
-		hallucination.bed_spawn = level.spawn
+		hallucination.bed_spawn = level.bed_spawn if level.bed_spawn != Transform3D.IDENTITY else level.spawn
 		hallucination.post_material = post
 		add_child(hallucination)
 
@@ -88,8 +88,8 @@ func _make_environment(s: Dictionary) -> void:
 func _bake_navigation(region: NavigationRegion3D) -> void:
 	var nm := NavigationMesh.new()
 	nm.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
-	nm.agent_radius = 0.5
-	nm.agent_height = 2.0
+	nm.agent_radius = Config.NAV_AGENT_RADIUS
+	nm.agent_height = Config.NAV_AGENT_HEIGHT
 	nm.agent_max_climb = 0.25
 	region.navigation_mesh = nm
 	region.bake_navigation_mesh(false)

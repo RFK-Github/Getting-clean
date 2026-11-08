@@ -1,13 +1,19 @@
 extends Area3D
 ## Something the player can interact with (E).
-## kind: "pill" (pill bottle), "item" (one of the 5 personal items),
-## "locked" (locked door, shows a message) or "door" (goes to target_level).
+## kind:
+##   "pill"   - pill bottle (lowers withdrawal, raises addiction)
+##   "item"   - one of the personal items (item_id)
+##   "locked" - shows `message` (locked doors, the exit doctor for now)
+##   "door"   - goes to target_level
+##   "read"   - opens the reading panel with title + text (or text_source() if set)
 
 var kind := "pill"
 var item_id := ""
 var prompt := ""
 var message := ""
 var target_level := ""
+var title := ""
+var text_source: Callable   # optional: returns the text when read (e.g. the clipboard)
 var shape_size := Vector3(0.4, 0.4, 0.4)
 
 
@@ -35,5 +41,7 @@ func interact() -> void:
 			queue_free()
 		"door":
 			Game.change_level(target_level)
+		"read":
+			Game.show_text(title, text_source.call() if text_source.is_valid() else message)
 		_:
 			Withdrawal.post_message(message)

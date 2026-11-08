@@ -27,7 +27,7 @@ var _target: Object = null
 func _ready() -> void:
 	add_to_group("player")
 	collision_layer = 2
-	collision_mask = 1
+	collision_mask = 1 | 16  # world + NPCs
 
 	var cs := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
@@ -46,6 +46,7 @@ func _ready() -> void:
 	camera.near = 0.05
 	camera.far = 40.0
 	head.add_child(camera)
+	camera.set_cull_mask_value(2, false)  # layer 2 = own head, only visible in mirrors
 	camera.make_current()
 
 	flashlight = SpotLight3D.new()
@@ -147,7 +148,7 @@ func _process(delta: float) -> void:
 func _update_target() -> void:
 	var from := camera.global_position
 	var to := from - camera.global_transform.basis.z * Config.INTERACT_DISTANCE
-	var q := PhysicsRayQueryParameters3D.create(from, to, 1 | 8, [get_rid()])
+	var q := PhysicsRayQueryParameters3D.create(from, to, 1 | 8 | 16, [get_rid()])
 	q.collide_with_areas = true
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
 	var new_target: Object = null

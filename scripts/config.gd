@@ -21,14 +21,17 @@ const VERTEX_SNAP := Vector2(320.0, 240.0)   # lower = more vertex jitter
 const AFFINE_STRENGTH := 0.25                # PS1 texture warping (0-1)
 const TEXTURE_SCALE := 0.5                   # texture repeats per metre
 
-# ---------- Level: hospital (temporary test level until step 3) ----------
-const HOSPITAL_FOG_DENSITY := 0.16           # exponential fog (higher = thicker)
-const HOSPITAL_FOG_COLOR := Color(0.05, 0.06, 0.035)
-const HOSPITAL_AMBIENT_COLOR := Color(0.55, 0.6, 0.4)
-const HOSPITAL_AMBIENT_ENERGY := 0.12        # how dark it is without lamps
-const HOSPITAL_TINT_COLOR := Color(0.85, 1.0, 0.5)   # green-yellow tone
-const HOSPITAL_TINT_STRENGTH := 0.6          # 0 = no tint, 1 = full
-const HOSPITAL_CAMERA_FAR := 40.0
+# ---------- Level: hospital (recovery center) ----------
+const HOSPITAL_FOG_DENSITY := 0.03           # exponential fog (higher = thicker)
+const HOSPITAL_FOG_COLOR := Color(0.62, 0.66, 0.6)   # pale, overcast
+const HOSPITAL_AMBIENT_COLOR := Color(0.85, 0.92, 0.85)
+const HOSPITAL_AMBIENT_ENERGY := 0.45
+const HOSPITAL_TINT_COLOR := Color(0.9, 1.0, 0.85)   # faint clinical green
+const HOSPITAL_TINT_STRENGTH := 0.25         # 0 = no tint, 1 = full
+const HOSPITAL_CAMERA_FAR := 90.0
+const HOSPITAL_WITHDRAWAL_RATE := 1.0
+const OUTDOOR_LIGHT_ENERGY := 1.2            # "sky" lights over the courtyard and lawn
+const OUTDOOR_LIGHT_RANGE := 40.0
 
 # ---------- Level: Philadelphia at dawn ----------
 const PHILLY_FOG_COLOR := Color(0.5, 0.33, 0.19)     # orange-amber haze
@@ -75,12 +78,34 @@ const SIREN_DB := -6.0                       # 3D sound placed far away
 const TRAIN_RUMBLE_DB := 4.0                 # loud bus
 const STING_DB := -4.0                       # loud bus
 
-# ---------- Lamps (hospital) ----------
-const LAMP_ENERGY := 0.7
-const LAMP_RANGE := 6.0
-const LAMP_COLOR := Color(0.9, 1.0, 0.7)
-const DORM_LAMP_ENERGY := 0.25
+# ---------- Fluorescent lights (hospital) ----------
+const LAMP_ENERGY := 0.9
+const LAMP_RANGE := 9.0
+const LAMP_COLOR := Color(0.92, 1.0, 0.92)
 const LAMP_FLICKER_CHANCE := 0.06            # per frame, for flickering lamps
+
+# ---------- NPCs ----------
+const NPC_MODEL_DIR := "res://assets/characters/"   # <role>.glb replaces the boxes (doctor, nurse, patient, therapist)
+const NPC_WALK_SPEED := 1.1
+const NPC_WAIT_TIME := 3.0                   # seconds they pause at each waypoint
+const NAV_AGENT_RADIUS := 0.25               # navigation mesh clearance (multiple of 0.25; must fit 1.2 m doors)
+const NAV_AGENT_HEIGHT := 1.5               # navigation clearance under door lintels (2.2 m)
+
+# ---------- Mirror ----------
+const MIRROR_RESOLUTION := Vector2i(160, 200)
+const MIRROR_UPDATE_DISTANCE := 7.0          # only render the reflection when this close
+
+# ---------- Daily schedule board (24h clock) ----------
+const SCHEDULE := [
+	[8, "Breakfast", "Common room"],
+	[9, "Doctor's round", "Your room"],
+	[10, "Basketball", "Courtyard"],
+	[11, "Group therapy", "Therapy room"],
+	[13, "Football", "Lawn"],
+	[15, "Swimming", "Pool"],
+	[18, "Dinner", "Common room"],
+	[22, "Lights out", ""],
+]
 
 # ---------- Player movement ----------
 const WALK_SPEED := 2.6
@@ -118,6 +143,7 @@ const SKIN_COLOR := Color(0.78, 0.6, 0.48)
 const JACKET_COLOR := Color(0.32, 0.26, 0.2)
 const PANTS_COLOR := Color(0.2, 0.24, 0.34)
 const SHOE_COLOR := Color(0.12, 0.11, 0.1)
+const HAIR_COLOR := Color(0.2, 0.15, 0.11)
 
 # ---------- Withdrawal and addiction (temporary, reworked in build step 4) ----------
 const METER_MAX := 100.0
