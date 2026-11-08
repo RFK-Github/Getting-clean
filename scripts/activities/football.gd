@@ -30,6 +30,7 @@ var _car_done := false
 var _flash: ColorRect
 var _car_sounds: Array[AudioStreamPlayer] = []
 const Audio := preload("res://scripts/audio.gd")
+const GhostCar := preload("res://scripts/props/ghost_car.gd")
 
 
 func setup() -> void:
@@ -175,23 +176,10 @@ func _start_car() -> void:
 	_t = 0.0
 	_flash = rect(Color(1, 1, 0.95, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0))
 	_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_car = Node3D.new()
+	_car = GhostCar.new()   # the same car as in the crash flashback
 	_car.position = Vector3(GOAL_X - 14.0, 0, GOAL_Z)
 	_car.rotation.y = -PI * 0.5   # front (-Z) toward +X, at him
 	level.add_child(_car)
-	var paint := Psx.material(Tex.get_texture("car"), Color(0.3, 0.32, 0.36), 1.0, false)
-	var dark := Psx.material(Tex.get_texture("plain"), Color(0.08, 0.08, 0.1), 1.0, false)
-	var lamp := Psx.material(Tex.get_texture("plain"), Color.WHITE, 1.0, false, Color(1, 1, 0.95))
-	_car_part(Vector3(0, 0.62, 0), Vector3(1.8, 0.6, 4.4), paint)
-	_car_part(Vector3(0, 1.15, 0.3), Vector3(1.6, 0.5, 2.2), dark)
-	for x in [-0.6, 0.6]:
-		_car_part(Vector3(x, 0.7, -2.21), Vector3(0.38, 0.16, 0.04), lamp)
-	var beam := SpotLight3D.new()
-	beam.position = Vector3(0, 0.7, -2.4)
-	beam.light_energy = 8.0
-	beam.spot_range = 40.0
-	beam.spot_angle = 35.0
-	_car.add_child(beam)
 	for s in [Audio.horn(), Audio.scream()]:
 		var p := AudioStreamPlayer.new()
 		p.stream = s
@@ -218,12 +206,3 @@ func _tick_car(delta: float) -> void:
 		Withdrawal.post_message("Nothing. There's nothing there.")
 		get_tree().create_timer(1.6, false).timeout.connect(func(): comment("...You okay, man? You went white."))
 
-
-func _car_part(pos: Vector3, size: Vector3, material: Material) -> void:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	mesh.material = material
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.position = pos
-	_car.add_child(mi)

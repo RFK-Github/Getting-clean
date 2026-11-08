@@ -4,6 +4,7 @@ extends "res://scripts/cutscenes/cutscene_base.gd"
 ## The car stands still at the origin facing -Z; the road and the world move past it.
 
 const Audio := preload("res://scripts/audio.gd")
+const GhostCar := preload("res://scripts/props/ghost_car.gd")
 
 const EYE := Vector3(-0.38, 1.3, 0.05)     # driver's seat (left)
 const RANGE := 210.0                        # moving scenery wraps over this length
@@ -46,21 +47,11 @@ func build() -> void:
 	_build_car()
 	_build_road()
 
-	var paint := mat("car", Color(0.3, 0.32, 0.36), 1.0, false)
-	_oncoming = Node3D.new()
-	_oncoming.position = Vector3(-2.6, 0, -200)
+	# The other car - the same one that comes at him on the football lawn.
+	_oncoming = GhostCar.new()
+	_oncoming.rotation.y = PI   # front toward +Z, toward us
+	_oncoming.position = _oncoming_at(0.0)
 	add_child(_oncoming)
-	box(Vector3(0, 0.6, 0), Vector3(1.9, 0.7, 4.6), paint, false, _oncoming)
-	var lamp := mat("plain", Color.WHITE, 1.0, false, Color(1.0, 1.0, 0.95))
-	for x in [-0.6, 0.6]:
-		box(Vector3(x, 0.65, 2.31), Vector3(0.4, 0.18, 0.04), lamp, false, _oncoming)
-	var beam := SpotLight3D.new()
-	beam.position = Vector3(0, 0.7, 2.4)
-	beam.rotation_degrees.y = 180
-	beam.light_energy = 6.0
-	beam.spot_range = 40.0
-	beam.spot_angle = 35.0
-	_oncoming.add_child(beam)
 
 	sound(Audio.traffic(), Config.CUTSCENE_ENGINE_DB)
 
@@ -86,13 +77,9 @@ func animate(delta: float) -> void:
 		if n.position.z > 20.0:
 			n.position.z -= RANGE
 
-	# The other car: far away in its lane, then suddenly in ours.
-	if t > 8.6:
-		_oncoming.position.z += (Config.FLASHBACK_DRIVE_SPEED + Config.FLASHBACK_ONCOMING_SPEED) * delta
-		if t > 9.2:
-			_oncoming.position.x = move_toward(_oncoming.position.x, 0.0, delta * 4.0)
-	else:
-		_oncoming.position.z = -200.0
+	# The other car: headlights far ahead in the haze from the start, closing in its own
+	# lane while he looks back - and then, as he turns round, it's in theirs.
+	_oncoming.position = _oncoming_at(t)
 
 	# Camera: forward, then over the right shoulder at her, then snapped back to the road.
 	var target := 0.0
@@ -203,3 +190,16 @@ func _build_road() -> void:
 	disc.mesh = quad
 	disc.position = Vector3(25, 14, -220)
 	add_child(disc)
+
+
+## Where the other car is at time `t` (seconds into the scene).
+## Far away in the oncoming lane until he turns round (9.4 s), then swerving into his lane;
+## it fills the windscreen at 10.15 s (the white flash).
+func _oncoming_at(time: float) -> Vector3:
+	var turn := 9.4
+	var hit := 10.15
+	if time < turn:
+		var z := lerpf(-Config.FLASHBACK_ONCOMING_START, -Config.FLASHBACK_ONCOMING_AT_TURN, time / turn)
+		return Vector3(-2.6, 0, z)
+	var k := clampf((time - turn) / (hit - turn), 0.0, 1.0)
+	return Vector3(lerpf(-2.6, -0.3, smoothstep(0.0, 1.0, k)), 0, lerpf(-Config.FLASHBACK_ONCOMING_AT_TURN, -5.5, k))
