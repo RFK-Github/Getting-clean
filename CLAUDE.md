@@ -21,7 +21,8 @@ Godot 4 project: first-person psychological horror game about addiction, PS1 sty
 - `scripts/props/`: reusable scripted props (vehicles, fog figure, mirror)
 - `scripts/cutscenes/`: in-engine cutscenes extending `cutscene_base.gd` (timeline via `at()`, `say()`, `fade()`, placeholder `figure()`s); played with `await Game.play_cutscene(script)`, which pauses the game. Flashbacks 1-3 are listed in `main.gd` `FLASHBACKS` and play at the kneeling point of episodes
 - `scripts/npc.gd`: non-hostile NPCs (doctor/nurse/patient/therapist), waypoints or stand/sit/lie
-- `Game.show_text(title, body)`: reading panel (clipboard, schedule board, later letters)
+- `Game.show_text(title, body)`: reading panel (clipboard, schedule board, letters)
+- `scripts/dialogues.gd`: staff conversations + group therapy (choice trees, once per day via `Recovery.can_talk`); NPCs with `dialogue_id` start them; UI is `Game.start_dialogue()`
 - `scripts/episode.gd` (withdrawal episode, `flashback_point` signal for step 6) and `scripts/hallucination.gd`
   (monster). Only one runs at a time via `Withdrawal.state`; neither while `Withdrawal.is_influenced()`.
   Signals for step 5 live on Withdrawal (`episode_survived`, `pill_taken`, ...) and `hallucination.caught_player`.

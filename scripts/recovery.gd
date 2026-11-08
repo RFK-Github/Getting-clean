@@ -17,6 +17,7 @@ var days_left: int = Config.COUNTDOWN_DAYS
 var flashbacks_seen: Array[String] = []
 var letters_read: Array[String] = []
 var notes: Array[String] = []        # the doctor's notes on the clipboard (newest last)
+var done_on_day := {}                # talk/activity id -> the day it was last done (once per day)
 
 
 func _ready() -> void:
@@ -46,6 +47,15 @@ func add(amount: float, note := "") -> void:
 	if note != "":
 		add_note(note)
 	recovery_changed.emit()
+
+
+## Staff talks, group therapy and activities can each happen once per in-game day.
+func can_talk(id: String) -> bool:
+	return done_on_day.get(id, -1) != day()
+
+
+func mark_talked(id: String) -> void:
+	done_on_day[id] = day()
 
 
 func add_note(text: String) -> void:
@@ -120,3 +130,4 @@ func reset() -> void:
 	flashbacks_seen.clear()
 	letters_read.clear()
 	notes.clear()
+	done_on_day.clear()

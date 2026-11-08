@@ -6,6 +6,7 @@ extends CharacterBody3D
 
 const Psx := preload("res://scripts/psx.gd")
 const Tex := preload("res://scripts/textures.gd")
+const Dialogues := preload("res://scripts/dialogues.gd")
 
 const OUTFITS := {
 	"doctor": {"top": Color(0.92, 0.92, 0.9), "legs": Color(0.25, 0.27, 0.32), "long_coat": true},
@@ -22,6 +23,7 @@ var waypoints: Array[Vector3] = []   # world positions; empty = stays put
 var lines: Array[String] = ["..."]
 var facing := 0.0                 # yaw in radians when standing still
 var prompt := "Talk"
+var dialogue_id := ""            # "doctor", "nurse" or "group": a real conversation (scripts/dialogues.gd)
 
 var _index := 0
 var _step := 1
@@ -63,10 +65,19 @@ func _ready() -> void:
 
 
 func interact() -> void:
+	if dialogue_id != "":
+		_face_player()
+		_wait = maxf(_wait, 2.0)
+		await Dialogues.run(dialogue_id)
+		return
 	var line: String = lines[_line % lines.size()]
 	_line += 1
 	Withdrawal.post_message("%s: \"%s\"" % [display_name, line])
 	_wait = maxf(_wait, 2.0)  # stop for a moment when spoken to
+	_face_player()
+
+
+func _face_player() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	if player != null and pose == "stand":
 		var to := player.global_position - global_position

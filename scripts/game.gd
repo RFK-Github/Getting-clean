@@ -17,6 +17,13 @@ var _panel_title: Label
 var _panel_body: Label
 var _ending: Control
 var _ending_text: Label
+var _dialogue: Control
+var _dialogue_speaker: Label
+var _dialogue_text: Label
+var _dialogue_choices: VBoxContainer
+var _dialogue_options := 0   # number of choices on screen (0 = "continue")
+
+signal _dialogue_pick(index: int)
 
 
 func _ready() -> void:
@@ -25,6 +32,7 @@ func _ready() -> void:
 	layer.layer = 10
 	add_child(layer)
 	_build_panel(layer)
+	_build_dialogue(layer)
 	_build_ending(layer)
 	_fade = ColorRect.new()
 	_fade.color = Color(0, 0, 0, 0)
@@ -63,6 +71,94 @@ func play_cutscene(scene_script: GDScript) -> void:
 	await p.play(scene_script)
 	p.queue_free()
 	in_cutscene = false
+
+
+# ------------------------------------------------------------------ Dialogue
+
+## Runs a conversation and returns the choices the player picked (as dictionaries).
+## tree: {node_id: {"speaker", "text", "next"} or {"speaker", "text", "choices": [
+##   {"text", "next", "requires" ("truth" = all flashbacks seen), ...any extra keys}]}}
+## Starts at "start" and ends when "next" is "" or missing. Pauses the game. Use with await.
+func start_dialogue(tree: Dictionary, start := "start") -> Array:
+	var picked: Array = []
+	var id := start
+	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_dialogue.visible = true
+	while id != "" and tree.has(id):
+		var node: Dictionary = tree[id]
+		_dialogue_speaker.text = node.get("speaker", "")
+		_dialogue_text.text = node.get("text", "")
+		for c in _dialogue_choices.get_children():
+			c.queue_free()
+		var choices: Array = node.get("choices", []).filter(_choice_available)
+		_dialogue_options = choices.size()
+		if choices.is_empty():
+			_add_choice_button("[E] Continue", 0)
+			await _dialogue_pick
+			id = node.get("next", "")
+		else:
+			for i in choices.size():
+				_add_choice_button("%d.  %s" % [i + 1, choices[i]["text"]], i)
+			var index: int = await _dialogue_pick
+			picked.append(choices[index])
+			id = choices[index].get("next", "")
+	_dialogue.visible = false
+	get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	return picked
+
+
+func is_talking() -> bool:
+	return _dialogue.visible
+
+
+func _choice_available(choice: Dictionary) -> bool:
+	if choice.get("requires", "") == "truth":
+		return Recovery.flashbacks_seen.size() >= Config.FLASHBACKS_TOTAL
+	return true
+
+
+func _add_choice_button(text: String, index: int) -> void:
+	var b := Button.new()
+	b.text = text
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.focus_mode = Control.FOCUS_NONE
+	b.pressed.connect(func(): _dialogue_pick.emit(index))
+	_dialogue_choices.add_child(b)
+
+
+func _build_dialogue(layer: CanvasLayer) -> void:
+	_dialogue = PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.06, 0.06, 0.92)
+	style.content_margin_left = 20
+	style.content_margin_right = 20
+	style.content_margin_top = 14
+	style.content_margin_bottom = 14
+	_dialogue.add_theme_stylebox_override("panel", style)
+	_dialogue.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_dialogue.offset_left = 24
+	_dialogue.offset_right = -24
+	_dialogue.offset_top = -210
+	_dialogue.offset_bottom = -16
+	var th := Theme.new()
+	th.default_font_size = Config.UI_FONT_SIZE
+	_dialogue.theme = th
+	_dialogue.visible = false
+	layer.add_child(_dialogue)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	_dialogue.add_child(box)
+	_dialogue_speaker = Label.new()
+	_dialogue_speaker.add_theme_color_override("font_color", Color(0.7, 0.8, 0.85))
+	box.add_child(_dialogue_speaker)
+	_dialogue_text = Label.new()
+	_dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dialogue_text.add_theme_color_override("font_color", Color(0.92, 0.9, 0.85))
+	box.add_child(_dialogue_text)
+	_dialogue_choices = VBoxContainer.new()
+	box.add_child(_dialogue_choices)
 
 
 # ------------------------------------------------------------------ Endings
@@ -159,6 +255,16 @@ func close_text() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _dialogue.visible:
+		if _dialogue_options == 0 and (event.is_action_pressed("interact") or event.is_action_pressed("ui_accept")):
+			_dialogue_pick.emit(0)
+			get_viewport().set_input_as_handled()
+		elif event is InputEventKey and event.pressed and not event.echo:
+			var n: int = event.physical_keycode - KEY_1
+			if n >= 0 and n < _dialogue_options:
+				_dialogue_pick.emit(n)
+				get_viewport().set_input_as_handled()
+		return
 	if _ending.visible:
 		if event.is_action_pressed("interact"):
 			restart()

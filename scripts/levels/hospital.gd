@@ -371,9 +371,9 @@ func _therapy_room() -> void:
 	var seats := 7
 	var people := {
 		0: ["therapist", "Maria", ["Group is at eleven. Your chair will be here.", "Nobody in this circle is judging you. We've all been where you are."]],
-		2: ["patient", "", ["...", "First week is the worst. Then it's just... long."]],
-		4: ["patient", "", ["I keep dreaming about it. Every night."]],
-		5: ["patient", "", ["They say talking helps. I'm still waiting."]],
+		2: ["patient", "Dee", ["...", "First week is the worst. Then it's just... long."]],
+		4: ["patient", "Marcus", ["I keep dreaming about it. Every night."]],
+		5: ["patient", "Ray", ["They say talking helps. I'm still waiting."]],
 	}
 	for i in seats:
 		var a := TAU * i / seats
@@ -384,6 +384,9 @@ func _therapy_room() -> void:
 			var p: Array = people[i]
 			var n := npc(p[0], pos, yaw, p[2], p[1])
 			n.pose = "sit"
+			if p[0] == "therapist":
+				n.dialogue_id = "group"
+				n.prompt = "Join group therapy"
 
 
 func _office() -> void:
@@ -401,8 +404,9 @@ func _office() -> void:
 	for i in 3:
 		box(Vector3(2.22, 1.7, -14.5 - i * 0.7), Vector3(0.04, 0.4, 0.5), m_wood, false)  # diplomas
 	plant(Vector3(2.6, 0, -27.4))
-	npc("doctor", Vector3(7.0, 0, -16.6), 0.0, ["One day at a time. I know it sounds like a poster.", "We'll talk properly at your round."], "Dr. Adler",
+	var adler := npc("doctor", Vector3(7.0, 0, -16.6), 0.0, ["One day at a time. I know it sounds like a poster.", "We'll talk properly at your round."], "Dr. Adler",
 		[Vector3(7.0, 0, -16.6), Vector3(8.6, 0, -25.5)])
+	adler.dialogue_id = "doctor"
 
 
 func _west_hall() -> void:
@@ -498,7 +502,8 @@ func _nurses_station() -> void:
 	box(Vector3(12.8, 1.3, -26.9), Vector3(0.5, 0.35, 0.05), m_dark, false)
 	box(Vector3(14, 1.4, -22.35), Vector3(4.0, 1.8, 0.3), m_metal)            # medicine cabinets
 	chair(Vector3(15.5, 0, -25.8), 0.0)
-	npc("nurse", Vector3(14, 0, -26.1), 0.0, ["Medication is handed out here. Nothing for you yet, sorry.", "Try to eat something at dinner."], "Nurse Bell")
+	var bell := npc("nurse", Vector3(14, 0, -26.1), 0.0, ["Medication is handed out here. Nothing for you yet, sorry.", "Try to eat something at dinner."], "Nurse Bell")
+	bell.dialogue_id = "nurse"
 
 
 func _common_room() -> void:
