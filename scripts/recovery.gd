@@ -83,18 +83,26 @@ func _on_pill() -> void:
 
 
 ## One day passes and you wake up in your bed (or it's game over).
-## reason: "caught" (the monster) or "forced" (tried to push past the doctor).
-func next_day(reason: String) -> void:
+## reason: "caught" (the monster), "forced" (tried to push past the doctor) or
+## "episode" (collapsed during a withdrawal episode). Pill bottles are back in their places.
+func next_day(reason: String, extra := "") -> void:
 	days_left -= 1
 	if days_left <= 0:
 		Game.game_over()
 		return
 	if reason == "forced":
 		add_note("Tried to leave against medical advice.")
+	elif reason == "episode":
+		add_note("Found collapsed in the hallway. Withdrawal.")
 	Withdrawal.meter = Config.WAKE_METER
-	var first := "Two orderlies walk you back to your room. The night passes." if reason == "forced" \
-		else "You wake up in your bed. The sheets are soaked with sweat."
+	Withdrawal.taken_pills.clear()
+	var first: String = {
+		"forced": "Two orderlies walk you back to your room. The night passes.",
+		"episode": "You wake up in your bed. You don't remember how you got here.",
+	}.get(reason, "You wake up in your bed. The sheets are soaked with sweat.")
 	Game.wake_message = "%s %s" % [first, days_text()]
+	if extra != "":
+		Game.wake_message += "\n" + extra
 	Game.change_level("hospital")
 	day_started.emit(day())
 

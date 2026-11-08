@@ -26,6 +26,7 @@ const FLASHBACKS := [
 ]
 
 var _post: ShaderMaterial
+var _episode: Node
 
 
 func _ready() -> void:
@@ -79,6 +80,7 @@ func _ready() -> void:
 		episode.player = player
 		episode.post_material = _post
 		episode.flashback_point.connect(_play_next_flashback)
+		_episode = episode
 		add_child(episode)
 
 	add_child(PauseMenu.new())
@@ -94,14 +96,15 @@ func _process(_delta: float) -> void:
 
 
 ## On the knees during a withdrawal episode: the next flashback the player hasn't seen.
-## The game is paused while it plays, so the episode simply continues afterwards.
+## Afterwards he blacks out and wakes up in his room the next day. (No flashback left:
+## the episode blacks out by itself after kneeling.)
 func _play_next_flashback() -> void:
 	for fb in FLASHBACKS:
 		if fb[0] in Recovery.flashbacks_seen:
 			continue
-		await Game.play_cutscene(fb[1])
+		await Game.play_cutscene(fb[1], true)
 		Recovery.see_flashback(fb[0])
-		Withdrawal.post_message(fb[2])
+		_episode.black_out(fb[2])
 		return
 
 

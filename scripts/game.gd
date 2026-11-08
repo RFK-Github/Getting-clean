@@ -64,11 +64,14 @@ func change_level(level_id: String) -> void:
 
 ## Plays an in-engine cutscene (a script extending cutscene_base.gd) over the game.
 ## The game is paused while it plays. Use with await.
-func play_cutscene(scene_script: GDScript) -> void:
+## end_black: stay black and paused afterwards (e.g. a day passes right after).
+func play_cutscene(scene_script: GDScript, end_black := false) -> void:
 	in_cutscene = true
 	var p := CutscenePlayer.new()
 	add_child(p)
-	await p.play(scene_script)
+	await p.play(scene_script, end_black)
+	if end_black:
+		_fade.color.a = 1.0
 	p.queue_free()
 	in_cutscene = false
 

@@ -1,6 +1,7 @@
 extends RefCounted
 ## Conversations with the staff and group therapy. Each can be had once per in-game day.
-## Choice keys: "honest" / "truth" (extra Recovery), "relief" (the nurse eases withdrawal),
+## Talk keys: "relief": true = the conversation eases withdrawal (the nurse).
+## Choice keys: "honest" / "truth" (extra Recovery),
 ## "requires": "truth" (only after all three flashbacks - accepting what happened).
 ## Run one with: await Dialogues.run("doctor")
 
@@ -38,18 +39,18 @@ const TALKS := {
 		},
 	},
 	"nurse": {
-		"name": "Nurse Bell", "base": "talk", "clean_only": false,
+		"name": "Nurse Bell", "base": "talk", "clean_only": false, "relief": true,
 		"note": "Asked the nurses for help.",
 		"done": "Come back if it gets bad again. I mean it.",
 		"nodes": {
 			"start": {"speaker": "Nurse Bell", "text": "How's the shaking today?", "choices": [
-				{"text": "Bad. My hands won't stop.", "next": "breathe", "honest": true, "relief": true},
+				{"text": "Bad. My hands won't stop.", "next": "breathe", "honest": true},
 				{"text": "Can I get something for it? Anything?", "next": "nothing"},
 				{"text": "I'm okay.", "next": "okay"}]},
 			"breathe": {"speaker": "Nurse Bell", "text": "Here. Water first. Now breathe with me. In for four... and out for four.", "next": "breathe_2"},
 			"breathe_2": {"speaker": "Nurse Bell", "text": "Better? It won't fix it. But it gets you through the next ten minutes. Then the next ten."},
 			"nothing": {"speaker": "Nurse Bell", "text": "Not that. You know not that. But I can sit with you for a minute, if you want.", "choices": [
-				{"text": "Okay. Thank you.", "next": "sit", "honest": true, "relief": true},
+				{"text": "Okay. Thank you.", "next": "sit", "honest": true},
 				{"text": "Forget it.", "next": "forget"}]},
 			"sit": {"speaker": "", "text": "She sits with you and doesn't say anything. It helps more than you expected."},
 			"forget": {"speaker": "Nurse Bell", "text": "Offer stands. I'm here until eight."},
@@ -102,8 +103,8 @@ static func run(id: String) -> bool:
 			gain += Config.RECOVERY_TALK_HONEST
 		if c.get("truth", false):
 			gain += Config.RECOVERY_TALK_TRUTH
-		if c.get("relief", false):
-			Withdrawal.meter = maxf(0.0, Withdrawal.meter - Config.NURSE_RELIEF)
+	if talk.get("relief", false):
+		Withdrawal.meter = maxf(0.0, Withdrawal.meter - Config.NURSE_RELIEF)
 	Recovery.mark_talked(id)
 	Recovery.add(gain, talk["note"])
 	return true

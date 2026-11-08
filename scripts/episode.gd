@@ -2,9 +2,9 @@ extends Node
 ## Withdrawal episode, in four phases:
 ##   build - a headache builds: pulsing vignette, blur, ringing ears, heartbeat, shake. You can still move.
 ##   grab  - he grabs his head and shakes it. No control.
-##   kneel - he falls to his knees. A flashback plays here (build step 6, signal flashback_point).
-##   rise  - he gets back up and control returns.
-## Surviving it (not taking a pill) lowers withdrawal and emits Withdrawal.episode_survived.
+##   kneel - he falls to his knees. A flashback plays here (signal flashback_point).
+##   out   - he blacks out and wakes up in his room the next morning (a day passes).
+## Getting through it without a pill still counts: Withdrawal.episode_survived (Recovery).
 
 signal flashback_point
 
@@ -14,7 +14,7 @@ const Player := preload("res://scripts/player.gd")
 var player: Player
 var post_material: ShaderMaterial
 
-var phase := ""          # "", "build", "grab", "kneel", "rise"
+var phase := ""          # "", "build", "grab", "kneel", "out"
 var _t := 0.0
 var _cooldown: float = Config.EPISODE_FIRST_COOLDOWN
 var _headache := 0.0
@@ -46,10 +46,7 @@ func _process(delta: float) -> void:
 					_enter("kneel")
 			"kneel":
 				if _t >= Config.EPISODE_KNEEL_TIME:
-					_enter("rise")
-			"rise":
-				if _t >= Config.EPISODE_RISE_TIME:
-					_finish()
+					black_out()
 	_apply(delta)
 
 
@@ -72,18 +69,19 @@ func _enter(next: String) -> void:
 			player.body.play_action("grab_head")
 		"kneel":
 			flashback_point.emit()
-		"rise":
-			player.body.play_action("")
 
 
-func _finish() -> void:
-	phase = ""
-	player.frozen = false
+## He blacks out on the floor and wakes up in his bed: one day passes.
+## extra: a thought to show when he wakes (after a flashback).
+func black_out(extra := "") -> void:
+	if phase == "out":
+		return
+	phase = "out"
+	_ringing.stop()
+	_heart.stop()
 	Withdrawal.state = ""
-	Withdrawal.meter = maxf(0.0, Withdrawal.meter - Config.EPISODE_METER_DROP)
-	_cooldown = Config.EPISODE_COOLDOWN
 	Withdrawal.episode_survived.emit()
-	Withdrawal.post_message("It passes. For now.")
+	Recovery.next_day("episode", extra)
 
 
 ## Taking a pill during the build-up cuts the episode short (and it doesn't count as survived).
@@ -110,9 +108,9 @@ func _apply(delta: float) -> void:
 		"kneel":
 			headache_target = 1.0
 			kneel_target = 1.0
-		"rise":
-			headache_target = 1.0 - _t / Config.EPISODE_RISE_TIME
-			kneel_target = 1.0 - _t / Config.EPISODE_RISE_TIME
+		"out":
+			headache_target = 1.0
+			kneel_target = 1.0
 	_headache = move_toward(_headache, headache_target, delta * 2.0)
 	player.kneel = move_toward(player.kneel, kneel_target, delta * (1.6 if kneel_target > player.kneel else 1.0))
 	player.head_shake = move_toward(player.head_shake, shake_head, delta * 3.0)

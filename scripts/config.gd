@@ -157,19 +157,19 @@ const HAIR_COLOR := Color(0.2, 0.15, 0.11)
 # ---------- Withdrawal meter and addiction ----------
 const METER_MAX := 100.0
 const METER_START := 20.0
-const METER_RISE_PER_SEC := 0.5              # base rise per second without drugs
+const METER_RISE_PER_SEC := 0.6              # base rise per second without drugs
 const ADDICTION_RISE_MULTIPLIER := 0.6       # rise = base * (1 + addiction * this)
 const SYMPTOM_START := 50.0                  # above this, faint visual symptoms begin
 
 # ---------- Drugs (pills) ----------
-const PILL_METER_REDUCTION := 45.0           # instant relief
+# A pill takes away ALL current withdrawal (meter to 0) - but raises addiction (the ticker).
 const PILL_ADDICTION_GAIN := 1.0             # each pill: withdrawal rises faster afterwards
 const INFLUENCE_DURATION := 120.0            # seconds "under the influence": no episodes or hallucinations
 const INFLUENCE_NUMB := 0.7                  # how grey/blurred/muffled the world gets (0-1)
 const INFLUENCE_MUFFLE_HZ := 900.0           # low-pass cutoff on all sound at full influence
 
 # ---------- Withdrawal episode (headache, grab head, knees, flashback) ----------
-const EPISODE_THRESHOLD := 50.0              # meter level where episodes can start
+const EPISODE_THRESHOLD := 60.0              # meter level where episodes can start (each one costs a day)
 const EPISODE_CHANCE_PER_SEC := 0.1
 const EPISODE_FIRST_COOLDOWN := 20.0         # seconds after a level starts
 const EPISODE_COOLDOWN := 45.0               # seconds between episodes
@@ -205,7 +205,7 @@ const AMBIENT_HUM_DB := -22.0
 
 # ---------- Countdown (days until the wife visits) ----------
 const COUNTDOWN_DAYS := 7                    # caught or forced back to bed = one day passes; 0 = game over
-const WAKE_METER := 45.0                     # withdrawal when you wake up the next morning
+const WAKE_METER := 25.0                     # withdrawal when you wake up the next morning
 
 # ---------- Recovery meter (0-100, decides when the doctors let you leave) ----------
 const RECOVERY_START := 10.0

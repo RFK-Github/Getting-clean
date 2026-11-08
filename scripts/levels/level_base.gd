@@ -150,7 +150,7 @@ func sign_text(text: String, pos: Vector3, rot_y: float, font_size := 24,
 
 ## A pill bottle. id must be unique; once taken it never comes back. message "" = default lines.
 func pill_bottle(pos: Vector3, id: String, message := "") -> Node3D:
-	if id in Withdrawal.taken_pickups:
+	if id in Withdrawal.taken_pills:
 		return null
 	var p := Pickup.new()
 	p.kind = "pill"

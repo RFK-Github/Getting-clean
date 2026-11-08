@@ -28,7 +28,8 @@ var influence := 0.0                # seconds left under the influence
 var state := ""                     # "", "episode" or "hallucination"
 var rate_multiplier := 1.0          # set per level by main.gd
 var found_items: Array[String] = []
-var taken_pickups: Array[String] = []   # ids of pills/items already taken (don't respawn)
+var taken_pickups: Array[String] = []   # ids of items/letters already taken (never come back)
+var taken_pills: Array[String] = []     # ids of pill bottles taken today (they come back the next day)
 
 
 func _process(delta: float) -> void:
@@ -50,12 +51,12 @@ func is_influenced() -> bool:
 
 
 func take_pill(id := "") -> void:
-	meter = maxf(0.0, meter - Config.PILL_METER_REDUCTION)
+	meter = 0.0   # all of it, at once. That's the trap.
 	addiction += Config.PILL_ADDICTION_GAIN
 	influence = Config.INFLUENCE_DURATION
 	pills_taken += 1
 	if id != "":
-		taken_pickups.append(id)
+		taken_pills.append(id)
 	pill_taken.emit()
 
 
@@ -83,6 +84,7 @@ func reset() -> void:
 	state = ""
 	found_items.clear()
 	taken_pickups.clear()
+	taken_pills.clear()
 	items_changed.emit()
 
 
