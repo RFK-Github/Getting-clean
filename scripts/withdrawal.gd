@@ -27,16 +27,22 @@ var pills_taken := 0
 var influence := 0.0                # seconds left under the influence
 var state := ""                     # "", "episode" or "hallucination"
 var rate_multiplier := 1.0          # set per level by main.gd
+var hold := false                   # true while doing an activity: withdrawal doesn't rise
+                                    # (talking and reading pause the whole game, so it stands still then too)
 var found_items: Array[String] = []
 var taken_pickups: Array[String] = []   # ids of items/letters already taken (never come back)
 var taken_pills: Array[String] = []     # ids of pill bottles taken today (they come back the next day)
 
 
 func _process(delta: float) -> void:
-	var rate := Config.METER_RISE_PER_SEC * rate_multiplier * (1.0 + addiction * Config.ADDICTION_RISE_MULTIPLIER)
-	meter = minf(Config.METER_MAX, meter + rate * delta)
+	if not hold:
+		meter = minf(Config.METER_MAX, meter + _rate() * delta)
 	influence = maxf(0.0, influence - delta)
 	Settings.set_muffle(influence_strength())
+
+
+func _rate() -> float:
+	return Config.METER_RISE_PER_SEC * rate_multiplier * (1.0 + addiction * Config.ADDICTION_RISE_MULTIPLIER)
 
 
 ## 0..1: how strongly the drugs are working right now (fades out over the duration).
@@ -82,6 +88,7 @@ func reset() -> void:
 	pills_taken = 0
 	influence = 0.0
 	state = ""
+	hold = false
 	found_items.clear()
 	taken_pickups.clear()
 	taken_pills.clear()

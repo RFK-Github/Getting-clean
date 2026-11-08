@@ -36,6 +36,7 @@ func begin(p: Player, lvl: Node3D) -> void:
 	player = p
 	level = lvl
 	player.frozen = true
+	Withdrawal.hold = true   # withdrawal stands still while you play
 	_build_ui()
 	setup()
 
@@ -70,6 +71,7 @@ func finish(did_well: bool) -> void:
 	if _done:
 		return
 	_done = true
+	Withdrawal.hold = false
 	Recovery.mark_talked(id)
 	var gain := Config.RECOVERY_ACTIVITY_SHOW_UP + (Config.RECOVERY_ACTIVITY_DO_WELL if did_well else 0.0)
 	Recovery.add(gain, note)

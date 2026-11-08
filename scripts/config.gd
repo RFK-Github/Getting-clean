@@ -158,7 +158,7 @@ const HAIR_COLOR := Color(0.2, 0.15, 0.11)
 # ---------- Withdrawal meter and addiction ----------
 const METER_MAX := 100.0
 const METER_START := 20.0
-const METER_RISE_PER_SEC := 0.6              # base rise per second without drugs
+const METER_RISE_PER_SEC := 0.35             # base rise per second without drugs (0 to full in about 5 minutes)
 const ADDICTION_RISE_MULTIPLIER := 0.6       # rise = base * (1 + addiction * this)
 const SYMPTOM_START := 50.0                  # above this, faint visual symptoms begin
 
@@ -170,7 +170,7 @@ const INFLUENCE_NUMB := 0.7                  # how grey/blurred/muffled the worl
 const INFLUENCE_MUFFLE_HZ := 900.0           # low-pass cutoff on all sound at full influence
 
 # ---------- Withdrawal episode (headache, grab head, knees, flashback) ----------
-const EPISODE_THRESHOLD := 60.0              # an episode starts when the meter reaches this (each one costs a day)
+const EPISODE_THRESHOLD := 100.0             # an episode starts when the meter is full (each one costs a day)
 const EPISODE_FIRST_COOLDOWN := 20.0         # seconds after a level starts
 const EPISODE_COOLDOWN := 45.0               # seconds between episodes
 const EPISODE_BUILD_TIME := 2.5              # headache builds, you can still move
@@ -182,7 +182,9 @@ const EPISODE_SHAKE := 0.03
 const KNEEL_DROP := 0.75                     # how far the camera drops on the knees (m)
 const HEAD_SHAKE_ANGLE := 0.18               # radians the head swings side to side
 const HEAD_SHAKE_SPEED := 14.0
-const TINNITUS_DB := -16.0                   # loud bus
+const TINNITUS_DB := -16.0                   # loud bus (during an episode)
+const TINNITUS_SYMPTOM_MIN_DB := -34.0       # ringing ears when symptoms start (SYMPTOM_START)...
+const TINNITUS_SYMPTOM_MAX_DB := -18.0       # ...growing to this at full withdrawal
 const HEARTBEAT_DB := -2.0
 
 # ---------- Hallucination (monster) ----------
@@ -209,7 +211,7 @@ const WATER_DB := -8.0
 
 # ---------- Countdown (days until the wife visits) ----------
 const COUNTDOWN_DAYS := 7                    # caught or forced back to bed = one day passes; 0 = game over
-const WAKE_METER := 25.0                     # withdrawal when you wake up the next morning
+const WAKE_METER := 0.0                      # withdrawal when you wake up the next morning (a fresh start)
 
 # ---------- Recovery meter (0-100, decides when the doctors let you leave) ----------
 const RECOVERY_START := 10.0

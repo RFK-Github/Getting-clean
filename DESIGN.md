@@ -93,5 +93,7 @@ Each gives Recovery and lowers withdrawal. Showing up always gives a little; doi
 - More of the hospital: stairwell, cafeteria, visiting room (locked), and a second floor with a chapel, records room (his file), library and art therapy room.
 - More spooky encounters: a small girl in a yellow dress (the daughter) appears and vanishes - in the hospital and in the fog in Philadelphia; the phone that rings only for him ("Daddy?"); the TV that turns itself on; on the lawn, a car comes out of the back of the goal at him and vanishes before it hits.
 - NPCs have faces (eyes that blink, mouths that move when they talk), varied hair, glasses and beards, and they breathe, glance around and turn their heads to watch you.
-- A withdrawal episode starts as soon as the meter reaches the episode mark (shown on the withdrawal bar). Pills don't block episodes directly - they reset the meter, so the next episode comes when it has climbed back. (Pills still stop hallucinations for a while.)
+- Withdrawal rises slowly (about 5 minutes from 0 to full) and is 0 again every new morning. A withdrawal episode starts when the meter is full (100). Pills don't block episodes directly - they reset the meter, so the next episode comes when it has climbed back. (Pills still stop hallucinations for a while.)
 - Basketball, football and swimming are all allowed under the influence.
+- Withdrawal stands still during activities (basketball, football, swimming), group therapy and conversations.
+- When withdrawal symptoms start (from 50), a ringing in the ears fades in and grows louder as it gets worse.

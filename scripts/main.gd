@@ -26,11 +26,14 @@ const FLASHBACKS := [
 ]
 
 var _post: ShaderMaterial
+var _ringing: AudioStreamPlayer
+var _ringing_noticed := false
 var _episode: Node
 
 
 func _ready() -> void:
 	Withdrawal.state = ""  # nothing carries over mid-episode from a previous level
+	Withdrawal.hold = false
 	var level_script: GDScript = LEVELS.get(Game.current_level, LEVELS["philadelphia"])
 	var level: Node3D = level_script.new()
 	var s: Dictionary = level.get_settings()
@@ -85,6 +88,12 @@ func _ready() -> void:
 
 	add_child(PauseMenu.new())
 
+	# Ringing in the ears once withdrawal symptoms start.
+	_ringing = AudioStreamPlayer.new()
+	_ringing.stream = preload("res://scripts/audio.gd").tinnitus()
+	_ringing.bus = Settings.LOUD_BUS
+	add_child(_ringing)
+
 	var msg: String = s.get("start_message", "")
 	if msg != "":
 		Withdrawal.post_message(msg)
@@ -93,6 +102,18 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	# Under the influence: grey, soft, muffled (sound is done by Withdrawal/Settings).
 	_post.set_shader_parameter("numb", Withdrawal.influence_strength())
+
+	# Ringing ears: from Config.SYMPTOM_START, louder the worse it gets.
+	var ring := inverse_lerp(Config.SYMPTOM_START, Config.METER_MAX, Withdrawal.meter)
+	if ring > 0.0:
+		_ringing.volume_db = lerpf(Config.TINNITUS_SYMPTOM_MIN_DB, Config.TINNITUS_SYMPTOM_MAX_DB, ring)
+		if not _ringing.playing:
+			_ringing.play()
+		if not _ringing_noticed:
+			_ringing_noticed = true
+			Withdrawal.post_message("Your ears have started ringing.")
+	elif _ringing.playing:
+		_ringing.stop()
 
 
 ## On the knees during a withdrawal episode: the next flashback the player hasn't seen.
