@@ -323,6 +323,35 @@ static func phone_ring() -> AudioStreamWAV:
 	return _make(samples, LOFI_RATE)
 
 
+## A car hitting a tree: a deep impact, crumpling metal, then glass falling (no loop).
+static func crash() -> AudioStreamWAV:
+	if _cache.has("crash"):
+		return _cache["crash"]
+	var n := int(RATE * 2.2)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var low := 0.0
+	var mid := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var noise := rng.randf_range(-1.0, 1.0)
+		low = low * 0.97 + noise * 0.03
+		mid = mid * 0.6 + noise * 0.4
+		var impact := (sin(TAU * 45.0 * t) * 0.9 + low * 6.0) * exp(-t * 6.0)
+		var metal := (mid * 0.8 + sin(TAU * 310.0 * t + sin(TAU * 7.0 * t) * 4.0) * 0.3) * exp(-t * 3.0) * clampf(t / 0.02, 0.0, 1.0)
+		var glass := 0.0
+		if t > 0.08 and rng.randf() < 0.02 * exp(-(t - 0.08) * 2.5):
+			glass = rng.randf_range(-1.0, 1.0)
+		glass += noise * 0.25 * exp(-(t - 0.08) * 8.0) * float(t > 0.08)
+		samples[i] = clampf(impact + metal * 0.7 + glass * 0.5, -1.0, 1.0)
+	var w := _make(samples)
+	w.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	_cache["crash"] = w
+	return w
+
+
 ## A gunshot in a hard-walled building: a crack, a thump, a short ring (no loop).
 static func gunshot() -> AudioStreamWAV:
 	if _cache.has("gunshot"):

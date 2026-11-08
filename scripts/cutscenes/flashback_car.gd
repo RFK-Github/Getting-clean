@@ -1,19 +1,29 @@
 extends "res://scripts/cutscenes/cutscene_base.gd"
 ## FLASHBACK 1: Driving at sunset. He looks back at his daughter in the back seat and they
-## laugh together. His wife suddenly screams. Cut to black.
-## The car stands still at the origin facing -Z; the road and the world move past it.
+## laugh together. The car drifts off the road. His wife screams. They hit a tree.
+## The car stands still at the origin facing -Z; the world (road, trees) moves past it,
+## and slides sideways as the car drifts toward the edge.
 
 const Audio := preload("res://scripts/audio.gd")
-const GhostCar := preload("res://scripts/props/ghost_car.gd")
 
 const EYE := Vector3(-0.38, 1.3, 0.05)     # driver's seat (left)
 const RANGE := 210.0                        # moving scenery wraps over this length
+const LOOK_OUT := 9.4                       # she screams, he turns back to the road
+const IMPACT := 10.3                        # they hit the tree
+const DRIFT := 2.6                          # how far the car has drifted right by then (m)
+const BONNET_FRONT := -2.35
 
+var _world: Node3D                          # road + trees: moved sideways for the drift
 var _moving: Array[Node3D] = []
+var _tree: Node3D                           # the one they hit
 var _wife: Node3D
 var _girl: Node3D
-var _oncoming: Node3D
+var _bonnet: Node3D
+var _glass: Node3D
+var _cracks: Array[Node3D] = []
 var _look_back := 0.0
+var _crashed := false
+var _jolt := 0.0
 
 
 func get_settings() -> Dictionary:
@@ -30,7 +40,7 @@ func get_settings() -> Dictionary:
 
 
 func build() -> void:
-	duration = 12.5
+	duration = 13.5
 
 	cam = Camera3D.new()
 	cam.fov = 70
@@ -45,13 +55,9 @@ func build() -> void:
 	add_child(sun)
 
 	_build_car()
+	_world = Node3D.new()
+	add_child(_world)
 	_build_road()
-
-	# The other car - the same one that comes at him on the football lawn.
-	_oncoming = GhostCar.new()
-	_oncoming.rotation.y = PI   # front toward +Z, toward us
-	_oncoming.position = _oncoming_at(0.0)
-	add_child(_oncoming)
 
 	sound(Audio.traffic(), Config.CUTSCENE_ENGINE_DB)
 
@@ -59,51 +65,80 @@ func build() -> void:
 	at(3.2, func(): say("You do the voice. She laughs so hard she can't breathe.", 2.6))
 	at(6.0, func(): say("Daughter: \"Again! Again!\"", 1.8))
 	at(7.9, func(): say("You're laughing too. You haven't looked at the road in a while.", 1.6))
-	at(9.4, func():
-		say("Your wife: \"LOOK OUT!\"", 1.2)
-		sound(Audio.scream(), Config.CUTSCENE_SCREAM_DB, Settings.LOUD_BUS)
-		sound(Audio.horn(), Config.CUTSCENE_SCREAM_DB, Settings.LOUD_BUS))
-	at(10.15, func(): fade(Color(1, 1, 0.95, 1), 0.2))
-	at(10.4, func():
+	at(LOOK_OUT, func():
+		say("Your wife: \"LOOK OUT!\"", 1.0)
+		sound(Audio.scream(), Config.CUTSCENE_SCREAM_DB, Settings.LOUD_BUS, true))
+	at(IMPACT, func():
+		_crash()
+		sound(Audio.crash(), Config.CUTSCENE_SCREAM_DB + 2.0, Settings.LOUD_BUS, true))
+	at(IMPACT + 0.55, func(): fade(Color(0, 0, 0, 1), 0.15))
+	at(IMPACT + 0.75, func():
 		stop_all_sounds()
 		subtitle_label.text = ""
-		fade(Color(0, 0, 0, 1), 0.0))
+		sound(Audio.tinnitus(), Config.TINNITUS_DB - 4.0, Settings.LOUD_BUS, true))   # ringing in the dark
 
 
 func animate(delta: float) -> void:
-	# The world passes the car.
-	for n in _moving:
-		n.position.z += Config.FLASHBACK_DRIVE_SPEED * delta
-		if n.position.z > 20.0:
-			n.position.z -= RANGE
-
-	# The other car: headlights far ahead in the haze from the start, closing in its own
-	# lane while he looks back - and then, as he turns round, it's in theirs.
-	_oncoming.position = _oncoming_at(t)
+	if not _crashed:
+		# The world passes the car (the tree they hit doesn't wrap around).
+		var step := Config.FLASHBACK_DRIVE_SPEED * delta
+		for n in _moving:
+			n.position.z += step
+			if n.position.z > 20.0:
+				n.position.z -= RANGE
+		_tree.position.z += step
+		# While he looks back the car drifts right, toward the edge - and off the road.
+		var drift := smoothstep(4.5, IMPACT, t) * DRIFT
+		_world.position.x = -drift
 
 	# Camera: forward, then over the right shoulder at her, then snapped back to the road.
-	var target := 0.0
-	if t > 2.4 and t < 9.4:
-		target = 1.0
-	_look_back = move_toward(_look_back, target, delta * (5.0 if t >= 9.4 else 1.0))
+	var target := 1.0 if (t > 2.4 and t < LOOK_OUT) else 0.0
+	_look_back = move_toward(_look_back, target, delta * (5.0 if t >= LOOK_OUT else 1.0))
 	var w := smoothstep(0.0, 1.0, _look_back)
-	# Turning round he leans toward the middle, so he can see her between the seats.
 	var eye := EYE.lerp(EYE + Vector3(0.24, 0.06, 0.1), w)
-	look_blend(eye, eye + Vector3(0, -0.05, -1), Vector3(0.0, 1.12, 1.05), w)
+	var look_ahead := eye + Vector3(0, -0.05, -1)
+	if t > LOOK_OUT and not _crashed:
+		look_ahead += Vector3(-0.25 * sin((t - LOOK_OUT) * 9.0), 0, 0)   # yanking the wheel
+	# The crash: thrown forward into the belt, then back; the world tilts.
+	if _crashed:
+		_jolt += delta
+		var k := exp(-_jolt * 5.0)
+		eye += Vector3(0, -0.12 * k, -0.35 * sin(minf(_jolt * 14.0, PI)) )
+		var s := 0.06 * k * (1.0 if Settings.screen_shake else 0.3)
+		eye += Vector3(randf_range(-s, s), randf_range(-s, s), 0)
+	look_blend(eye, look_ahead, Vector3(0.0, 1.12, 1.05), w)
+	if _crashed:
+		cam.rotation.z = lerpf(cam.rotation.z, 0.22, clampf(delta * 12.0, 0.0, 1.0))
 
 	# She laughs: head bobs and arms flap.
-	if t > 3.0 and t < 9.4:
+	if t > 3.0 and t < LOOK_OUT:
 		_girl.get_node("head").rotation.x = sin(t * 13.0) * 0.18
 		_girl.get_node("arm_l").rotation.x = 1.6 + sin(t * 9.0) * 0.4
 		_girl.get_node("arm_r").rotation.x = 1.6 + sin(t * 9.0 + 1.0) * 0.4
 	# The wife smiles over at you, then looks forward and throws her arms up.
 	var wife_head := _wife.get_node("head")
-	if t < 9.3:
+	if t < LOOK_OUT - 0.1:
 		wife_head.rotation.y = lerpf(wife_head.rotation.y, 0.7 if t > 4.0 else 0.0, delta * 3.0)
 	else:
 		wife_head.rotation.y = 0.0
 		_wife.get_node("arm_l").rotation.x = lerpf(_wife.get_node("arm_l").rotation.x, 2.4, delta * 10.0)
 		_wife.get_node("arm_r").rotation.x = lerpf(_wife.get_node("arm_r").rotation.x, 2.4, delta * 10.0)
+
+
+## The moment of impact: everything stops, the bonnet buckles, the windscreen cracks,
+## everyone is thrown forward.
+func _crash() -> void:
+	_crashed = true
+	_tree.position.z = BONNET_FRONT - 0.35
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(_bonnet, "rotation:x", 0.35, 0.08)
+	tw.tween_property(_bonnet, "position:y", 0.98, 0.08)
+	tw.tween_property(_bonnet, "scale:z", 0.6, 0.08)
+	for c in _cracks:
+		c.visible = true
+	for f in [_wife, _girl]:
+		tw.tween_property(f, "position:z", f.position.z - 0.18, 0.06)
+		tw.tween_property(f.get_node("head"), "rotation:x", -0.7, 0.06)
 
 
 func _build_car() -> void:
@@ -112,12 +147,50 @@ func _build_car() -> void:
 	var body := mat("car", Color(0.45, 0.12, 0.1), 1.0, false)
 	box(Vector3(0, 0.05, 0.4), Vector3(1.6, 0.1, 2.8), dash, false)               # floor
 	box(Vector3(0, 0.95, -0.85), Vector3(1.6, 0.35, 0.5), dash, false)            # dashboard
-	box(Vector3(0, 0.85, -1.7), Vector3(1.6, 0.12, 1.3), body, false)             # bonnet
+	_bonnet = Node3D.new()
+	_bonnet.position = Vector3(0, 0.85, -1.1)                                      # hinged at the windscreen
+	add_child(_bonnet)
+	box(Vector3(0, 0, -0.65), Vector3(1.6, 0.12, 1.3), body, false, _bonnet)       # bonnet
 	box(Vector3(0, 1.62, 0.3), Vector3(1.6, 0.06, 2.1), interior, false)          # roof
 	for x in [-0.78, 0.78]:
 		box(Vector3(x, 0.75, 0.3), Vector3(0.06, 0.55, 2.5), body, false)        # doors
-		var pillar := box(Vector3(x, 1.3, -0.82), Vector3(0.06, 0.65, 0.06), body, false)
-		pillar.rotation.x = deg_to_rad(-30)
+	# Windscreen frame: two pillars leaning back from the dashboard to the roof, and a top bar.
+	var bottom := Vector3(0, 1.1, -1.08)
+	var top := Vector3(0, 1.6, -0.74)
+	var mid := (bottom + top) * 0.5
+	var lean := atan2(top.z - bottom.z, top.y - bottom.y)
+	var length := bottom.distance_to(top)
+	for x in [-0.77, 0.77]:
+		var pillar := box(Vector3(x, mid.y, mid.z), Vector3(0.06, length, 0.06), body, false)
+		pillar.rotation.x = lean
+	box(Vector3(0, top.y, top.z), Vector3(1.6, 0.06, 0.08), body, false)
+	# The glass (faint), and the cracks that appear on impact
+	_glass = Node3D.new()
+	_glass.position = mid
+	_glass.rotation.x = lean
+	add_child(_glass)
+	var glass := StandardMaterial3D.new()
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glass.albedo_color = Color(0.8, 0.85, 0.9, 0.06)
+	box(Vector3.ZERO, Vector3(1.5, length, 0.01), glass, false, _glass)
+	var crack := mat("plain", Color(0.85, 0.86, 0.84), 1.0, false, Color(0.2, 0.2, 0.2))
+	var centre := Vector3(-0.3, 0.05, 0.0)
+	for i in 9:
+		var a := TAU * i / 9.0 + 0.3
+		var crack_len := randf_range(0.18, 0.4)
+		var c := box(centre + Vector3(cos(a), sin(a), 0) * crack_len * 0.5, Vector3(crack_len, 0.004, 0.008), crack, false, _glass)
+		c.rotation.z = a
+		c.visible = false
+		_cracks.append(c)
+	for r in [0.08, 0.16]:
+		for i in 6:
+			var a := TAU * i / 6.0
+			var c := box(centre + Vector3(cos(a), sin(a), 0) * r, Vector3(r * 0.9, 0.004, 0.008), crack, false, _glass)
+			c.rotation.z = a + PI * 0.5
+			c.visible = false
+			_cracks.append(c)
+
 	for x in [-0.38, 0.38]:
 		box(Vector3(x, 0.4, 0.15), Vector3(0.5, 0.4, 0.5), interior, false)      # front seats
 		box(Vector3(x, 0.85, 0.42), Vector3(0.5, 0.55, 0.12), interior, false)   # low backs: she can be seen
@@ -154,26 +227,27 @@ func _build_car() -> void:
 
 func _build_road() -> void:
 	var asphalt := mat("asphalt", Color.WHITE, 0.4)
-	box(Vector3(0, -0.05, -100), Vector3(9, 0.1, 260), asphalt, false, null, 4.0)
-	box(Vector3(0, -0.1, -100), Vector3(80, 0.05, 260), mat("grass", Color(1.1, 0.9, 0.6), 0.3), false, null, 8.0)
+	box(Vector3(0, -0.05, -100), Vector3(9, 0.1, 260), asphalt, false, _world, 4.0)
+	box(Vector3(0, -0.1, -100), Vector3(80, 0.05, 260), mat("grass", Color(1.1, 0.9, 0.6), 0.3), false, _world, 8.0)
 	var paint := mat("plain", Color(0.9, 0.85, 0.6), 1.0)
-	box(Vector3(1.9, 0.005, -100), Vector3(0.12, 0.01, 260), paint, false, null, 8.0)   # edge line
+	box(Vector3(1.9, 0.005, -100), Vector3(0.12, 0.01, 260), paint, false, _world, 8.0)   # edge line
 	var trunk := mat("wood", Color.WHITE, 1.0)
 	var leaves := mat("grass", Color(1.0, 0.9, 0.55), 1.0)
 	var z := 15.0
 	var i := 0
 	while z > 15.0 - RANGE:
 		i += 1
-		_moving.append(box(Vector3(-1.4, 0.005, z), Vector3(0.12, 0.01, 2.5), paint, false))  # centre dashes
+		_moving.append(box(Vector3(-1.4, 0.005, z), Vector3(0.12, 0.01, 2.5), paint, false, _world))  # centre dashes
 		if i % 2 == 0:   # a pair of trees every 12 m
 			for side in [-1.0, 1.0]:
-				var tree := Node3D.new()
+				var tree := _tree_node(trunk, leaves, 0.35)
 				tree.position = Vector3(side * randf_range(6.0, 12.0), 0, z + randf_range(-3, 3))
-				add_child(tree)
-				box(Vector3(0, 1.5, 0), Vector3(0.35, 3.0, 0.35), trunk, false, tree)
-				box(Vector3(0, 3.8, 0), Vector3(2.8, 2.4, 2.8), leaves, false, tree)
 				_moving.append(tree)
 		z -= 6.0
+
+	# The tree: a thick old one right by the edge. They reach it exactly at the impact.
+	_tree = _tree_node(trunk, leaves, 0.7)
+	_tree.position = Vector3(DRIFT, 0, BONNET_FRONT - 0.35 - Config.FLASHBACK_DRIVE_SPEED * IMPACT)
 
 	# Low sun ahead, behind the haze
 	var quad := QuadMesh.new()
@@ -192,14 +266,9 @@ func _build_road() -> void:
 	add_child(disc)
 
 
-## Where the other car is at time `t` (seconds into the scene).
-## Far away in the oncoming lane until he turns round (9.4 s), then swerving into his lane;
-## it fills the windscreen at 10.15 s (the white flash).
-func _oncoming_at(time: float) -> Vector3:
-	var turn := 9.4
-	var hit := 10.15
-	if time < turn:
-		var z := lerpf(-Config.FLASHBACK_ONCOMING_START, -Config.FLASHBACK_ONCOMING_AT_TURN, time / turn)
-		return Vector3(-2.6, 0, z)
-	var k := clampf((time - turn) / (hit - turn), 0.0, 1.0)
-	return Vector3(lerpf(-2.6, -0.3, smoothstep(0.0, 1.0, k)), 0, lerpf(-Config.FLASHBACK_ONCOMING_AT_TURN, -5.5, k))
+func _tree_node(trunk: Material, leaves: Material, thickness: float) -> Node3D:
+	var tree := Node3D.new()
+	_world.add_child(tree)
+	box(Vector3(0, 1.5, 0), Vector3(thickness, 3.0, thickness), trunk, false, tree)
+	box(Vector3(0, 3.8, 0), Vector3(2.8, 2.4, 2.8), leaves, false, tree)
+	return tree

@@ -1199,7 +1199,13 @@ func _stairwell() -> void:
 	ramp.rotation.x = atan2(SECOND_FLOOR, run)
 	add_child(ramp)
 	invisible_wall(Vector3(11.95, SECOND_FLOOR * 0.5, -6.0), Vector3(0.1, SECOND_FLOOR, run))   # can't step on from the side
-	box(Vector3(11.95, SECOND_FLOOR * 0.5 + 0.5, -6.0), Vector3(0.05, 0.05, run), m_metal, false)   # handrail (low end)
+	# Handrail along the open side: it slopes with the stairs, 0.9 m above the steps, on posts.
+	var rail := box(Vector3(11.95, SECOND_FLOOR * 0.5 + 0.9, -2.5 - run * 0.5), Vector3(0.05, 0.05, length), m_metal, false)
+	rail.rotation.x = atan2(SECOND_FLOOR, run)
+	for i in 7:
+		var k := i / 6.0
+		var post_base := SECOND_FLOOR * k
+		box(Vector3(11.95, post_base + 0.45, -2.5 - run * k), Vector3(0.05, 0.9, 0.05), m_metal, false)
 	# Landing at the top
 	box(Vector3(12, SECOND_FLOOR - 0.1, -10.7), Vector3(7.8, 0.2, 2.4), m_floor, true, null, 1.5)
 	invisible_wall(Vector3(10.0, SECOND_FLOOR + 0.5, -9.45), Vector3(3.8, 1.0, 0.1))
