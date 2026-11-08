@@ -9,13 +9,11 @@ const UI_FONT_SIZE := 16
 const UI_FONT_SIZE_SMALL := 12
 const FOV := 70.0
 
-# ---------- PS1 look ----------
-const FOG_DENSITY := 0.16                    # dense fog (higher = thicker)
-const FOG_COLOR := Color(0.05, 0.06, 0.035)
-const AMBIENT_COLOR := Color(0.55, 0.6, 0.4)
-const AMBIENT_ENERGY := 0.12                 # how dark it is without lamps
-const TINT_COLOR := Color(0.85, 1.0, 0.5)    # green-yellow tone
-const TINT_STRENGTH := 0.6                   # 0 = no tint, 1 = full
+# ---------- Game flow ----------
+const START_LEVEL := "philadelphia"          # "philadelphia" or "hospital"
+const LEVEL_FADE_TIME := 1.0                 # seconds to fade out/in between levels
+
+# ---------- PS1 look (all levels) ----------
 const COLOR_DEPTH := 32.0                    # colour levels per channel (fewer = coarser)
 const DITHER_STRENGTH := 1.0
 const VIGNETTE := 0.7
@@ -23,7 +21,61 @@ const VERTEX_SNAP := Vector2(320.0, 240.0)   # lower = more vertex jitter
 const AFFINE_STRENGTH := 0.25                # PS1 texture warping (0-1)
 const TEXTURE_SCALE := 0.5                   # texture repeats per metre
 
-# ---------- Lamps ----------
+# ---------- Level: hospital (temporary test level until step 3) ----------
+const HOSPITAL_FOG_DENSITY := 0.16           # exponential fog (higher = thicker)
+const HOSPITAL_FOG_COLOR := Color(0.05, 0.06, 0.035)
+const HOSPITAL_AMBIENT_COLOR := Color(0.55, 0.6, 0.4)
+const HOSPITAL_AMBIENT_ENERGY := 0.12        # how dark it is without lamps
+const HOSPITAL_TINT_COLOR := Color(0.85, 1.0, 0.5)   # green-yellow tone
+const HOSPITAL_TINT_STRENGTH := 0.6          # 0 = no tint, 1 = full
+const HOSPITAL_CAMERA_FAR := 40.0
+
+# ---------- Level: Philadelphia at dawn ----------
+const PHILLY_FOG_COLOR := Color(0.5, 0.33, 0.19)     # orange-amber haze
+const PHILLY_FOG_BEGIN := 4.0                # depth fog starts (m)
+const PHILLY_FOG_END := 95.0                 # depth fog reaches max (m) - "1-2 blocks"
+const PHILLY_FOG_CURVE := 0.7                # <1 = thickens quickly near you
+const PHILLY_FOG_MAX := 0.94                 # max fog amount (1 = towers fully hidden)
+const PHILLY_FOG_SUN_SCATTER := 0.5          # glow in the fog toward the sun
+const PHILLY_AMBIENT_COLOR := Color(0.75, 0.55, 0.38)
+const PHILLY_AMBIENT_ENERGY := 0.3
+const PHILLY_TINT_COLOR := Color(1.0, 0.75, 0.45)
+const PHILLY_TINT_STRENGTH := 0.3
+const PHILLY_CAMERA_FAR := 300.0
+const PHILLY_WITHDRAWAL_RATE := 0.3          # withdrawal rises slower in the opening
+const PHILLY_SUN_COLOR := Color(1.0, 0.62, 0.32)
+const PHILLY_SUN_ENERGY := 0.7
+const PHILLY_SUN_ELEVATION := 7.0            # degrees above the horizon
+const PHILLY_SUN_DISC_COLOR := Color(1.0, 0.72, 0.42, 0.5)
+const STREETLIGHT_COLOR := Color(1.0, 0.68, 0.32)    # sodium orange
+const STREETLIGHT_ENERGY := 1.4
+const STREETLIGHT_RANGE := 12.0
+const STREETLIGHT_SPACING := 26.0
+const HEADLIGHT_ENERGY := 2.0
+const HEADLIGHT_RANGE := 18.0
+const TRAIN_SPEED := 15.0
+const TRAIN_FIRST_DELAY := 10.0              # seconds after start
+const TRAIN_INTERVAL := 45.0
+const TRAIN_CARS := 4
+const TRAIN_SHAKE := 0.012                   # camera shake when a train passes overhead
+const TRAIN_SHAKE_DISTANCE := 30.0
+const CAR_SPEED := 9.0
+const CAR_INTERVAL := 25.0
+const BUS_MAX_SPEED := 8.0
+const BUS_ACCELERATION := 1.2
+const BUS_DEPART_DELAY := 1.5
+const SIREN_FIRST_DELAY := 20.0
+const SIREN_INTERVAL := 40.0
+const FIGURE_VANISH_DISTANCE := 14.0         # the figure in the fog vanishes this close
+const FLASHLIGHT_HINT_DELAY := 9.0
+
+# ---------- Sound levels (dB) ----------
+const TRAFFIC_DB := -24.0
+const SIREN_DB := -6.0                       # 3D sound placed far away
+const TRAIN_RUMBLE_DB := 4.0                 # loud bus
+const STING_DB := -4.0                       # loud bus
+
+# ---------- Lamps (hospital) ----------
 const LAMP_ENERGY := 0.7
 const LAMP_RANGE := 6.0
 const LAMP_COLOR := Color(0.9, 1.0, 0.7)
@@ -93,7 +145,7 @@ const MONSTER_SPEED_PER_ADDICTION := 0.3
 const MONSTER_CATCH_DISTANCE := 0.9
 const CAUGHT_METER_AFTER := 45.0
 
-# ---------- Sound ----------
+# ---------- Sound (hospital) ----------
 const LOUD_SOUND_DB := -6.0                  # hallucination sound (bus "Loud")
 const AMBIENT_HUM_DB := -22.0
 

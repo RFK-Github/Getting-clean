@@ -1,5 +1,5 @@
-extends Node3D
-## TEMPORARY test level (milestone 1). Replaced by Philadelphia (step 2) and the hospital (step 3).
+extends "res://scripts/levels/level_base.gd"
+## TEMPORARY test level (milestone 1). Stands in for the hospital until build step 3.
 ## Builds a corridor and three rooms (dormitory, common room, office) from simple boxes.
 ##
 ## Map (top view, -Z is "forward" down the corridor):
@@ -8,15 +8,12 @@ extends Node3D
 ##   Common room: x 1.5..9.5,   z -9..-17 (right, door at z -13)
 ##   Office:      x -6.5..-1.5, z -15..-22 (left, door at z -18.5)
 
-const Psx := preload("res://scripts/psx.gd")
-const Tex := preload("res://scripts/textures.gd")
-const Pickup := preload("res://scripts/pickup.gd")
 
 const H := 3.0        # ceiling height
 const T := 0.2        # wall thickness
 const DOOR_H := 2.1
-
-var bed_spawn := Transform3D.IDENTITY
+const PILL_MESSAGE := "You swallow the pills. The shaking fades. But your body remembers."
+const Audio := preload("res://scripts/audio.gd")
 
 var _flicker: Array[OmniLight3D] = []
 var m_wall: ShaderMaterial
@@ -37,6 +34,30 @@ func build() -> void:
 	_build_dorm()
 	_build_common_room()
 	_build_office()
+
+	var hum := AudioStreamPlayer.new()
+	hum.stream = Audio.hum()
+	hum.volume_db = Config.AMBIENT_HUM_DB
+	hum.autoplay = true
+	add_child(hum)
+
+
+func get_settings() -> Dictionary:
+	return {
+		"fog_mode": "exponential",
+		"fog_color": Config.HOSPITAL_FOG_COLOR,
+		"fog_density": Config.HOSPITAL_FOG_DENSITY,
+		"ambient_color": Config.HOSPITAL_AMBIENT_COLOR,
+		"ambient_energy": Config.HOSPITAL_AMBIENT_ENERGY,
+		"tint": Config.HOSPITAL_TINT_COLOR,
+		"tint_strength": Config.HOSPITAL_TINT_STRENGTH,
+		"camera_far": Config.HOSPITAL_CAMERA_FAR,
+		"flashlight_on": true,
+		"hallucinations": true,
+		"navigation": true,
+		"withdrawal_rate": 1.0,
+		"start_message": "A nurse walks you to your bed without a word. The door clicks shut.",
+	}
 
 
 func _process(_delta: float) -> void:
@@ -111,12 +132,12 @@ func _build_dorm() -> void:
 
 	lamp(Vector3(-4.5, 0, -4.5), false, Config.DORM_LAMP_ENERGY)
 
-	pill_bottle(Vector3(-7.1, 0.5, -7.6))
+	pill_bottle(Vector3(-7.1, 0.5, -7.6), PILL_MESSAGE)
 
 	# The player starts by their bed, facing the door.
 	var pos := Vector3(-5.0, 0.05, -2.2)
 	var dir := Vector3(-1.5, 0, -4.5) - pos
-	bed_spawn = Transform3D(Basis(Vector3.UP, atan2(-dir.x, -dir.z)), pos)
+	spawn = Transform3D(Basis(Vector3.UP, atan2(-dir.x, -dir.z)), pos)
 
 
 func _build_common_room() -> void:
@@ -173,36 +194,10 @@ func _build_office() -> void:
 	l.omni_range = 3.0
 	add_child(l)
 
-	pill_bottle(Vector3(-3.7, 0.78, -20.95))
+	pill_bottle(Vector3(-3.7, 0.78, -20.95), PILL_MESSAGE)
 
 
 # ------------------ Building blocks
-
-func box(center: Vector3, size: Vector3, mat: Material, collide := true) -> Node3D:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	# Subdivide large faces so vertex jitter and affine warping look right.
-	mesh.subdivide_width = clampi(int(size.x / 0.75), 0, 40)
-	mesh.subdivide_height = clampi(int(size.y / 0.75), 0, 40)
-	mesh.subdivide_depth = clampi(int(size.z / 0.75), 0, 40)
-	mesh.material = mat
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	if not collide:
-		mi.position = center
-		add_child(mi)
-		return mi
-	var body := StaticBody3D.new()
-	body.position = center
-	add_child(body)
-	body.add_child(mi)
-	var cs := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = size
-	cs.shape = shape
-	body.add_child(cs)
-	return body
-
 
 ## Wall along Z (along_z) at x=fixed, or along X at z=fixed. gaps = [[center, width], ...]
 func _wall(along_z: bool, fixed: float, a: float, b: float, gaps: Array) -> void:
@@ -244,18 +239,6 @@ func lamp(pos: Vector3, flicker := false, energy := Config.LAMP_ENERGY) -> void:
 		_flicker.append(l)
 
 
-func sign_text(text: String, pos: Vector3, rot_y: float) -> void:
-	var l := Label3D.new()
-	l.text = text
-	l.font_size = 24
-	l.pixel_size = 0.006
-	l.outline_size = 0
-	l.modulate = Color(0.75, 0.8, 0.65)
-	l.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	l.position = pos
-	l.rotation_degrees.y = rot_y
-	add_child(l)
-
 
 func bed(pos: Vector3) -> void:
 	box(pos + Vector3(0, 0.2, 0), Vector3(2.0, 0.4, 0.9), m_metal)
@@ -278,18 +261,6 @@ func chair(pos: Vector3, facing: float) -> void:
 	box(pos + Vector3(0, 0.75, facing * 0.2), Vector3(0.45, 0.55, 0.05), m_wood, false)
 
 
-func pill_bottle(pos: Vector3) -> void:
-	var p := Pickup.new()
-	p.kind = "pill"
-	p.prompt = "Pill bottle"
-	p.message = "You swallow the pills. The shaking fades. But your body remembers."
-	p.position = pos
-	var amber := Psx.material(Tex.get_texture("plain"), Color(0.75, 0.42, 0.1), 1.0, false, Color(0.08, 0.04, 0.0))
-	var white := Psx.material(Tex.get_texture("plain"), Color(0.9, 0.9, 0.85), 1.0, false)
-	p.add_child(_cylinder(0.045, 0.12, 0.06, amber))
-	p.add_child(_cylinder(0.048, 0.03, 0.135, white))
-	add_child(p)
-
 
 func drawing(pos: Vector3) -> void:
 	var p := Pickup.new()
@@ -308,16 +279,3 @@ func drawing(pos: Vector3) -> void:
 	p.add_child(mi)
 	add_child(p)
 
-
-func _cylinder(radius: float, height: float, y: float, mat: Material) -> MeshInstance3D:
-	var c := CylinderMesh.new()
-	c.top_radius = radius
-	c.bottom_radius = radius
-	c.height = height
-	c.radial_segments = 8
-	c.rings = 1
-	c.material = mat
-	var mi := MeshInstance3D.new()
-	mi.mesh = c
-	mi.position.y = y
-	return mi

@@ -7,7 +7,16 @@ static var _cache: Dictionary = {}
 static func get_texture(kind: String) -> Texture2D:
 	if _cache.has(kind):
 		return _cache[kind]
-	var img: Image = _drawing() if kind == "drawing" else _pattern(kind)
+	var img: Image
+	match kind:
+		"drawing":
+			img = _drawing()
+		"puff":
+			img = _radial(16, 0.9)
+		"sun":
+			img = _radial(32, 1.6)
+		_:
+			img = _pattern(kind)
 	var tex := ImageTexture.create_from_image(img)
 	_cache[kind] = tex
 	return tex
@@ -59,8 +68,80 @@ static func _pattern(kind: String) -> Image:
 				"plain":
 					c = Color.WHITE
 					amt = 0.0
+				"brick", "brick_window":
+					c = _brick(x, y)
+					if kind == "brick_window":
+						c = _window(x, y, c, Color(0.62, 0.56, 0.48))
+					amt = 0.03
+				"concrete", "concrete_window":
+					c = Color(0.62, 0.58, 0.5)
+					if y % 16 == 0:
+						c = c.darkened(0.2)
+					if kind == "concrete_window":
+						c = _window(x, y, c, Color(0.5, 0.5, 0.48))
+				"asphalt":
+					c = Color(0.2, 0.2, 0.21)
+					if stains.has(x) and absi(y - x) < 2:
+						c = Color(0.13, 0.13, 0.13)
+					amt = 0.06
+				"sidewalk":
+					c = Color(0.48, 0.46, 0.42)
+					if x % 16 == 0 or y % 16 == 0:
+						c = Color(0.32, 0.31, 0.28)
+					amt = 0.05
+				"tower":
+					c = Color(0.22, 0.24, 0.27)
+					if x % 8 >= 2 and x % 8 <= 6 and y % 8 >= 2 and y % 8 <= 6:
+						c = Color(0.32, 0.36, 0.4)
+						if hash(Vector2i(x >> 3, y >> 3)) % 9 == 0:
+							c = Color(0.85, 0.7, 0.45)
+					amt = 0.02
+				"shutter":
+					c = Color(0.4, 0.42, 0.4) if y % 4 < 2 else Color(0.3, 0.32, 0.3)
+					if stains.has(x):
+						c = Color(0.35, 0.25, 0.18)  # rust streak
+					amt = 0.03
+				"car":
+					c = Color(0.8, 0.8, 0.8)
+					amt = 0.02
 			c = Color(clampf(c.r + n * amt, 0.0, 1.0), clampf(c.g + n * amt, 0.0, 1.0), clampf(c.b + n * amt, 0.0, 1.0))
 			img.set_pixel(x, y, c)
+	return img
+
+
+## Red brick: 4 px rows, 8 px bricks, every other row offset. Each brick gets its own shade.
+static func _brick(x: int, y: int) -> Color:
+	var row := y >> 2
+	var bx := (x + (row % 2) * 4) >> 3
+	if y % 4 == 3 or (x + (row % 2) * 4) % 8 == 7:
+		return Color(0.42, 0.38, 0.34)  # mortar
+	var shade := float(hash(Vector2i(bx, row)) % 100) / 100.0
+	return Color(0.5, 0.2, 0.13).lerp(Color(0.62, 0.3, 0.2), shade)
+
+
+## One window per texture tile (1 tile = one storey when uv_scale = 1/3).
+## Glass at x 10..21, y 6..23 - philadelphia.gd uses these numbers to place lit windows.
+static func _window(x: int, y: int, wall: Color, stone: Color) -> Color:
+	if y == 24 and x >= 9 and x <= 22:
+		return stone  # sill
+	if y == 5 and x >= 10 and x <= 21:
+		return stone.darkened(0.15)  # lintel
+	if x >= 10 and x <= 21 and y >= 6 and y <= 23:
+		if x == 10 or x == 21 or y == 6 or y == 23 or x == 15:
+			return Color(0.25, 0.22, 0.2)  # frame
+		return Color(0.07, 0.08, 0.09).lerp(Color(0.2, 0.2, 0.22), float(y - 6) / 17.0)
+	return wall
+
+
+## White blob with soft alpha falloff (steam puffs, sun glow).
+static func _radial(size: int, power: float) -> Image:
+	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
+	var half := size / 2.0
+	for y in size:
+		for x in size:
+			var d := Vector2(x + 0.5 - half, y + 0.5 - half).length() / half
+			var a := pow(clampf(1.0 - d, 0.0, 1.0), power)
+			img.set_pixel(x, y, Color(1, 1, 1, a))
 	return img
 
 

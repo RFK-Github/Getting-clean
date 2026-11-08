@@ -25,6 +25,7 @@ var _target: Object = null
 
 
 func _ready() -> void:
+	add_to_group("player")
 	collision_layer = 2
 	collision_mask = 1
 

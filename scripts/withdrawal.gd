@@ -8,10 +8,11 @@ var meter: float = Config.METER_START
 var addiction := 0.0
 var pills_taken := 0
 var found_items: Array[String] = []
+var rate_multiplier := 1.0  # set per level by main.gd
 
 
 func _process(delta: float) -> void:
-	var rate := Config.METER_RISE_PER_SEC * (1.0 + addiction * Config.ADDICTION_RISE_MULTIPLIER)
+	var rate := Config.METER_RISE_PER_SEC * rate_multiplier * (1.0 + addiction * Config.ADDICTION_RISE_MULTIPLIER)
 	meter = minf(Config.METER_MAX, meter + rate * delta)
 
 
