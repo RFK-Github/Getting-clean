@@ -50,9 +50,12 @@ var _blink := 3.0
 var _talk := 0.0
 var _look_change := 0.0
 var _idle_look := Vector2.ZERO
+var dead := false
+var panic := false
 
 
 func _ready() -> void:
+	add_to_group("npc")
 	collision_layer = 16
 	collision_mask = 1 | 2
 	rotation.y = facing
@@ -81,6 +84,11 @@ func _ready() -> void:
 
 
 func interact() -> void:
+	if dead:
+		return
+	if panic:
+		Withdrawal.post_message("%s backs away from you, shaking." % display_name)
+		return
 	if dialogue_id != "":
 		_face_player()
 		_talk = 1.5
@@ -98,6 +106,62 @@ func interact() -> void:
 	_face_player()
 
 
+## Shot: he collapses. No blood - the PS1 boxes just fall. He stays dead across days.
+func shot() -> void:
+	if dead:
+		return
+	dead = true
+	collision_layer = 0
+	collision_mask = 1
+	for c in get_children():
+		if c is CollisionShape3D:
+			(c as CollisionShape3D).set_deferred("disabled", true)
+	if has_meta("key"):
+		Game.killed.append(get_meta("key"))
+	if _visual != null:
+		var tw := create_tween()
+		if pose == "lie":
+			tw.tween_property(_visual, "rotation:z", 0.3, 0.3)
+		else:
+			tw.tween_property(_visual, "rotation:x", PI * 0.5, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			tw.parallel().tween_property(_visual, "position:y", 0.12, 0.45)
+	if _eyes.size() > 0:
+		for e in _eyes:
+			e.scale.y = 0.15
+
+
+## A gunshot somewhere: standing people run from him, sitting ones cower.
+func panic_from(_where: Vector3) -> void:
+	if dead:
+		return
+	panic = true
+	if pose == "sit" and _head != null:
+		_head.rotation.x = 0.6   # head down
+		_arm_l.rotation.x = 2.4
+		_arm_r.rotation.x = 2.4
+
+
+func _flee(delta: float) -> void:
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if player == null:
+		return
+	var away := global_position - player.global_position
+	away.y = 0.0
+	if away.length() < 0.01:
+		away = Vector3.FORWARD
+	var dir := away.normalized()
+	# Run away; if a wall is in the way, slide along it.
+	velocity = dir * Config.NPC_PANIC_SPEED
+	move_and_slide()
+	if get_slide_collision_count() > 0:
+		var n := get_slide_collision(0).get_normal()
+		velocity = (dir - n * dir.dot(n)).normalized() * Config.NPC_PANIC_SPEED
+		move_and_slide()
+	if velocity.length() > 0.1:
+		rotation.y = lerp_angle(rotation.y, atan2(-velocity.x, -velocity.z), clampf(delta * 8.0, 0.0, 1.0))
+	_animate(delta, true)
+
+
 func _face_player() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	if player != null and pose == "stand":
@@ -106,6 +170,11 @@ func _face_player() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if dead:
+		return
+	if panic and pose == "stand":
+		_flee(delta)
+		return
 	var moving := false
 	if not waypoints.is_empty():
 		if _wait > 0.0:
@@ -234,6 +303,8 @@ func _build_placeholder() -> void:
 
 ## Breathing, blinking, glancing around, watching the player, talking, walking.
 func _animate_placeholder(delta: float, moving: bool) -> void:
+	if dead:
+		return
 	_time += delta
 	# Breathing
 	_torso.scale.y = 1.0 + sin(_time * 1.6 + _seed) * 0.02

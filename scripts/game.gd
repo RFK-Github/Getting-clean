@@ -7,6 +7,9 @@ var current_level: String = Config.START_LEVEL
 var previous_level := ""
 var wake_message := ""   # shown when the hospital loads after a day passes
 var in_cutscene := false
+var has_gun := false        # picked up the revolver (kept across days)
+var shots_fired := false    # once he has fired, everyone is afraid of him
+var killed: Array[String] = []   # NPCs he has shot (they stay dead across days)
 
 const CutscenePlayer := preload("res://scripts/cutscenes/cutscene_player.gd")
 const Inventory := preload("res://scripts/inventory.gd")
@@ -173,6 +176,7 @@ func _build_dialogue(layer: CanvasLayer) -> void:
 
 const EndingGood := preload("res://scripts/cutscenes/ending_good.gd")
 const EndingBad := preload("res://scripts/cutscenes/ending_bad.gd")
+const EndingPrison := preload("res://scripts/cutscenes/ending_prison.gd")
 const MENU_SCENE := "res://scenes/menu.tscn"
 const GAME_SCENE := "res://scenes/main.tscn"
 
@@ -180,6 +184,11 @@ const GAME_SCENE := "res://scenes/main.tscn"
 ## Final cutscene B: the countdown ran out. "She came. You weren't ready. She left."
 func game_over() -> void:
 	await _ending_sequence(EndingBad, "GAME OVER")
+
+
+## He shot everyone in the center: arrested, sentenced, a cell, the years.
+func prison_ending() -> void:
+	await _ending_sequence(EndingPrison, "THE END")
 
 
 ## Final cutscene A: Recovery reached 100 and the doctor lets you go.
@@ -236,6 +245,9 @@ func to_menu() -> void:
 
 
 func _reset_state() -> void:
+	has_gun = false
+	shots_fired = false
+	killed.clear()
 	Withdrawal.reset()
 	Recovery.reset()
 	wake_message = ""

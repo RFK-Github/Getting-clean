@@ -323,6 +323,30 @@ static func phone_ring() -> AudioStreamWAV:
 	return _make(samples, LOFI_RATE)
 
 
+## A gunshot in a hard-walled building: a crack, a thump, a short ring (no loop).
+static func gunshot() -> AudioStreamWAV:
+	if _cache.has("gunshot"):
+		return _cache["gunshot"]
+	var n := int(RATE * 1.2)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 66
+	var samples := PackedFloat32Array()
+	samples.resize(n)
+	var lp := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var noise := rng.randf_range(-1.0, 1.0)
+		lp = lp * 0.85 + noise * 0.15
+		var crack := noise * exp(-t * 60.0)
+		var thump := sin(TAU * 60.0 * t) * exp(-t * 12.0)
+		var ring := lp * 2.5 * exp(-t * 4.0)
+		samples[i] = clampf(crack * 0.9 + thump * 0.6 + ring * 0.5, -1.0, 1.0)
+	var w := _make(samples)
+	w.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	_cache["gunshot"] = w
+	return w
+
+
 static func _make(samples: PackedFloat32Array, rate := RATE) -> AudioStreamWAV:
 	var data := PackedByteArray()
 	data.resize(samples.size() * 2)

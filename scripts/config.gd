@@ -317,6 +317,12 @@ const TV_SELF_MIN_METER := 45.0
 const FOOTBALL_CAR_KICK := 3
 const FOOTBALL_CAR_SPEED := 18.0
 
+# ---------- The revolver (the "prison" ending) ----------
+const GUN_COOLDOWN := 0.45                   # seconds between shots
+const GUN_RANGE := 40.0
+const GUNSHOT_DB := -2.0                     # loud bus
+const NPC_PANIC_SPEED := 2.8                 # people run from you after the first shot
+
 # ---------- Time-passing hints ----------
 const YEAR_HE_THINKS := 2019                 # the year he believes it is (he thinks it's been weeks)
 const YEAR_NOW := 2024                       # the real year (calendars, the last letter)

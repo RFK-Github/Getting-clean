@@ -23,6 +23,8 @@ var _arm_r: Node3D
 var _look_lag := Vector2.ZERO
 var _action := ""
 var _grab := 0.0
+var _gun: Node3D
+var _kick := 0.0
 
 
 func setup(camera: Camera3D) -> void:
@@ -67,6 +69,28 @@ func update_motion(delta: float, speed_ratio: float, sprinting: bool, phase: flo
 		arm.position = walk_pos.lerp(grab_pos, g) + tremble
 		arm.rotation.x = lerpf(-side * pump, deg_to_rad(55), g)
 		arm.rotation.y = lerpf(0.0, side * deg_to_rad(-18), g)
+	_kick = move_toward(_kick, 0.0, delta * 6.0)
+	if _gun != null:
+		_arm_l.rotation.x += _kick * 0.5
+
+
+## The revolver in his left hand.
+func give_gun() -> void:
+	if _arm_l == null or _gun != null:
+		return
+	var steel := Psx.material(Tex.get_texture("metal"), Color(0.25, 0.25, 0.27), 1.0, false)
+	var grip := Psx.material(Tex.get_texture("wood"), Color(0.8, 0.6, 0.45), 1.0, false)
+	_gun = Node3D.new()
+	_gun.position = Vector3(0, 0.03, -0.47)
+	_arm_l.add_child(_gun)
+	_box(_gun, Vector3(0, 0.02, -0.02), Vector3(0.05, 0.07, 0.1), steel)     # frame + cylinder
+	_box(_gun, Vector3(0, 0.035, -0.14), Vector3(0.025, 0.025, 0.16), steel) # barrel
+	_box(_gun, Vector3(0, -0.04, 0.03), Vector3(0.04, 0.09, 0.05), grip)     # grip
+
+
+## A kick back when firing.
+func gun_kick() -> void:
+	_kick = 1.0
 
 
 ## Mouse movement in screen pixels, so the arms can lag slightly behind.

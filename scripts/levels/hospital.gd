@@ -67,6 +67,8 @@ var _phone_timer: float = Config.PHONE_FIRST_DELAY
 var _phone_ring_left := 0.0
 var _phone_sound: AudioStreamPlayer3D
 var _tv_self_done := false
+var _arrest_started := false
+var _npcs_check := 0.0
 
 const Basketball := preload("res://scripts/activities/basketball.gd")
 const Football := preload("res://scripts/activities/football.gd")
@@ -179,6 +181,7 @@ func _process(delta: float) -> void:
 	_push_window = maxf(0.0, _push_window - delta)
 	_tv_flicker()
 	_update_encounters(delta)
+	_check_everyone_dead(delta)
 	_board_refresh -= delta
 	if _board_refresh <= 0.0 and _board_label:
 		_board_refresh = 1.0
@@ -423,8 +426,9 @@ func _interactions() -> void:
 	# Room 11: the other patient's wardrobe
 	_wardrobe(Vector3(-25.45, 0, -26.6), 0.0, "gown", "Someone else's things. You close it again quickly.")
 	# Staff lockers in the west hall (doors face south, into the hall)
-	for x in [-11.55, -10.9]:
-		_wardrobe(Vector3(x, 0, -31.45), -PI * 0.5, "locker", "A nurse's locker. A photo of two kids is taped inside the door.")
+	_wardrobe(Vector3(-11.55, 0, -31.45), -PI * 0.5, "locker", "A nurse's locker. A photo of two kids is taped inside the door.")
+	# The other locker: a security guard's. There's a revolver in it.
+	_wardrobe(Vector3(-10.9, 0, -31.45), -PI * 0.5, "locker", "", _revolver_in_locker)
 
 	# --- Filing cabinet in the office (drawer pulls out toward the room, -X)
 	_filing_cabinet(Vector3(9.6, 0, -20))
@@ -498,10 +502,63 @@ func _remark(key: String, text: String) -> void:
 	Withdrawal.post_message(text)
 
 
+## The security guard's locker: a revolver wrapped in a towel, on the shelf.
+func _revolver_in_locker() -> void:
+	if Game.has_gun:
+		Withdrawal.post_message("The guard's locker. An empty towel on the shelf.")
+		return
+	var spot := Vector3(-10.9, 1.42, -31.45)
+	var steel := mat("metal", Color(0.25, 0.25, 0.27), 1.0, false)
+	var gun := Node3D.new()
+	gun.position = spot
+	gun.rotation.y = 0.4
+	add_child(gun)
+	box(Vector3(0, -0.03, 0), Vector3(0.3, 0.03, 0.25), m_sheet, false, gun)    # the towel
+	box(Vector3(0, 0.0, 0), Vector3(0.06, 0.05, 0.12), steel, false, gun)
+	box(Vector3(0, 0.01, -0.13), Vector3(0.025, 0.025, 0.16), steel, false, gun)
+	box(Vector3(0, -0.005, 0.09), Vector3(0.04, 0.03, 0.08), mat("wood", Color.WHITE, 1.0, false), false, gun)
+	Withdrawal.post_message("A security guard's locker. Something heavy wrapped in a towel on the shelf.")
+	var p := Pickup.new()
+	p.kind = "action"
+	p.prompt = "Revolver"
+	p.shape_size = Vector3(0.6, 0.5, 0.4)
+	p.position = Vector3(-10.9, 1.15, -30.95)
+	p.action = func():
+		Game.has_gun = true
+		var player := get_player()
+		if player:
+			player.get("body").give_gun()
+		gun.queue_free()
+		p.queue_free()
+		Withdrawal.post_message("A revolver. Heavy. Cold. Loaded. You know you shouldn't.  (Left mouse button)")
+	add_child(p)
+
+
+## Once he has opened fire: when nobody is left alive, the police come.
+func _check_everyone_dead(delta: float) -> void:
+	if _arrest_started or not Game.shots_fired:
+		return
+	_npcs_check -= delta
+	if _npcs_check > 0.0:
+		return
+	_npcs_check = 0.5
+	var alive := get_tree().get_nodes_in_group("npc").filter(func(n): return not n.dead)
+	if not alive.is_empty():
+		return
+	_arrest_started = true
+	var sirens := AudioStreamPlayer.new()
+	sirens.stream = Audio.siren()
+	sirens.volume_db = -2.0
+	add_child(sirens)
+	sirens.play()
+	Withdrawal.post_message("Silence. Then sirens. A lot of them.")
+	get_tree().create_timer(5.0, false).timeout.connect(func(): Game.prison_ending())
+
+
 ## A closet with a door that swings open: hollow inside, with things in it.
 ## yaw: which way the door faces (0 = +X, PI/2 = -Z, -PI/2 = +Z, PI = -X).
 ## contents: "clothes" (his room), "gown" (another patient's), "locker" (staff locker).
-func _wardrobe(base: Vector3, yaw := 0.0, contents := "clothes", remark := "") -> void:
+func _wardrobe(base: Vector3, yaw := 0.0, contents := "clothes", remark := "", on_first_open := Callable()) -> void:
 	var body := Node3D.new()
 	body.position = base
 	body.rotation.y = yaw
@@ -552,7 +609,10 @@ func _wardrobe(base: Vector3, yaw := 0.0, contents := "clothes", remark := "") -
 			open[0] = not open[0]
 			create_tween().tween_property(hinge, "rotation:y", 1.75 if open[0] else 0.0, 0.5)
 			if open[0] and remark != "":
-				_remark("closet_%s" % str(base), remark))
+				_remark("closet_%s" % str(base), remark)
+			if open[0] and on_first_open.is_valid() and not _said.has("first_%s" % str(base)):
+				_said["first_%s" % str(base)] = true
+				on_first_open.call())
 	spot.position = base + Vector3(0.6, 0.4, 0).rotated(Vector3.UP, yaw)
 	spot.rotation.y = yaw
 
@@ -1478,7 +1538,12 @@ func npc(role: String, pos: Vector3, yaw: float, lines: Array, display_name := "
 	n.waypoints.assign(waypoints)
 	if HINTS.has(display_name):
 		n.hint_lines.assign(HINTS[display_name])
+	var key := "%s|%s|%s" % [role, display_name, str(pos.snapped(Vector3.ONE * 0.1))]
+	n.set_meta("key", key)
 	n.position = pos
+	if key in Game.killed:
+		n.call_deferred("free")   # shot on an earlier day: gone
+		return n
 	add_child.call_deferred(n)  # after the level's colliders exist
 	return n
 

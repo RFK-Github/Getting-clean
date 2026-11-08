@@ -28,6 +28,8 @@ var _bob := 0.0
 var _target: Object = null
 var _shown_prompt := ""
 var _jump_buffer := 0.0
+var _gun_cool := 0.0
+var _muzzle: OmniLight3D
 
 
 func _ready() -> void:
@@ -67,6 +69,15 @@ func _ready() -> void:
 	body = PlayerBody.new()
 	add_child(body)
 	body.setup(camera)
+	if Game.has_gun:
+		body.give_gun()
+	_muzzle = OmniLight3D.new()
+	_muzzle.position = Vector3(-0.24, -0.22, -0.8)
+	_muzzle.light_color = Color(1.0, 0.85, 0.55)
+	_muzzle.light_energy = 4.0
+	_muzzle.omni_range = 8.0
+	_muzzle.visible = false
+	camera.add_child(_muzzle)
 
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -88,6 +99,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_pitch = clampf(_pitch - rel.y * Config.MOUSE_SENSITIVITY, -1.45, 1.4)
 		head.rotation.x = _pitch
 		body.add_look_delta(rel)
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
+			and Game.has_gun and not frozen and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		shoot()
 	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event.is_action_pressed("flashlight"):
@@ -99,6 +113,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_gun_cool = maxf(0.0, _gun_cool - delta)
+	if _shakes.get("gun", 0.0) > 0.0:
+		_shakes["gun"] = maxf(0.0, _shakes["gun"] - delta * 0.1)
 	if not is_on_floor():
 		velocity.y -= Config.GRAVITY * delta
 
@@ -163,6 +180,34 @@ func _air_accelerate(wish_dir: Vector3, delta: float) -> void:
 		horizontal = horizontal.normalized() * Config.AIR_MAX_SPEED
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
+
+
+## Fire the revolver: a shot straight ahead. Everyone who hears it panics.
+func shoot() -> void:
+	if _gun_cool > 0.0:
+		return
+	_gun_cool = Config.GUN_COOLDOWN
+	Game.shots_fired = true
+	var s := AudioStreamPlayer.new()
+	s.stream = preload("res://scripts/audio.gd").gunshot()
+	s.bus = Settings.LOUD_BUS
+	s.volume_db = Config.GUNSHOT_DB
+	add_child(s)
+	s.play()
+	s.finished.connect(s.queue_free)
+	_muzzle.visible = true
+	get_tree().create_timer(0.06, false).timeout.connect(func(): _muzzle.visible = false)
+	body.gun_kick()
+	_pitch = clampf(_pitch + 0.03, -1.45, 1.4)
+	head.rotation.x = _pitch
+	set_shake("gun", 0.02)
+	var from := camera.global_position
+	var to := from - camera.global_transform.basis.z * Config.GUN_RANGE
+	var q := PhysicsRayQueryParameters3D.create(from, to, 1 | 16, [get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if not hit.is_empty() and hit.collider != null and hit.collider.has_method("shot"):
+		hit.collider.shot()
+	get_tree().call_group("npc", "panic_from", global_position)
 
 
 func _update_stamina(delta: float, input: Vector2) -> void:
